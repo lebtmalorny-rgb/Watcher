@@ -58,6 +58,11 @@ from watcher import objects
 LOG = log.getLogger(__name__)
 
 
+VALID_AUDIT_STATES = frozenset(
+    value for name, value in vars(objects.audit.State).items()
+    if name.isupper())
+
+
 def _get_object_by_value(context, class_name, value):
     if utils.is_uuid_like(value) or utils.is_int_like(value):
         return class_name.get(context, value)
@@ -490,7 +495,7 @@ class AuditsController(rest.RestController):
     def _get_audits_collection(self, marker, limit,
                                sort_key, sort_dir, expand=False,
                                resource_url=None, goal=None,
-                               strategy=None):
+                               strategy=None, state=None):
         additional_fields = ["goal_uuid", "goal_name", "strategy_uuid",
                              "strategy_name"]
 
@@ -519,6 +524,15 @@ class AuditsController(rest.RestController):
                 # TODO(michaelgugino): add method to get goal by name.
                 filters['strategy_name'] = strategy
 
+        if state is not None:
+            if state not in VALID_AUDIT_STATES:
+                raise exception.Invalid(
+                    _('Invalid audit state filter: %(state)s. '
+                      'Valid states are: %(valid_states)s') %
+                    {'state': state,
+                     'valid_states': ', '.join(sorted(VALID_AUDIT_STATES))})
+            filters['state'] = state
+
         need_api_sort = api_utils.check_need_api_sort(sort_key,
                                                       additional_fields)
         sort_db_key = (sort_key if not need_api_sort
@@ -529,9 +543,17 @@ class AuditsController(rest.RestController):
                                     marker_obj, sort_key=sort_db_key,
                                     sort_dir=sort_dir, filters=filters)
 
+        next_kwargs = {'sort_key': sort_key, 'sort_dir': sort_dir}
+        if goal:
+            next_kwargs['goal'] = goal
+        if strategy:
+            next_kwargs['strategy'] = strategy
+        if state is not None:
+            next_kwargs['state'] = state
+
         audits_collection = AuditCollection.convert_with_links(
             audits, limit, url=resource_url, expand=expand,
-            sort_key=sort_key, sort_dir=sort_dir)
+            **next_kwargs)
 
         if need_api_sort:
             api_utils.make_api_sort(audits_collection.audits, sort_key,
@@ -540,9 +562,9 @@ class AuditsController(rest.RestController):
         return audits_collection
 
     @wsme_pecan.wsexpose(AuditCollection, types.uuid, int, wtypes.text,
-                         wtypes.text, wtypes.text, wtypes.text)
+                         wtypes.text, wtypes.text, wtypes.text, wtypes.text)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
-                goal=None, strategy=None):
+                goal=None, strategy=None, state=None):
         """Retrieve a list of audits.
 
         :param marker: pagination marker for large data sets.
@@ -551,6 +573,7 @@ class AuditsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param goal: goal UUID or name to filter by
         :param strategy: strategy UUID or name to filter by
+        :param state: audit state to filter by
         """
 
         context = pecan.request.context
@@ -559,12 +582,12 @@ class AuditsController(rest.RestController):
 
         return self._get_audits_collection(marker, limit, sort_key,
                                            sort_dir, goal=goal,
-                                           strategy=strategy)
+                                           strategy=strategy, state=state)
 
     @wsme_pecan.wsexpose(AuditCollection, wtypes.text, types.uuid, int,
-                         wtypes.text, wtypes.text)
+                         wtypes.text, wtypes.text, wtypes.text)
     def detail(self, goal=None, marker=None, limit=None,
-               sort_key='id', sort_dir='asc'):
+               sort_key='id', sort_dir='asc', state=None):
         """Retrieve a list of audits with detail.
 
         :param goal: goal UUID or name to filter by
@@ -572,6 +595,7 @@ class AuditsController(rest.RestController):
         :param limit: maximum number of resources to return in a single result.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param state: audit state to filter by
         """
         context = pecan.request.context
         policy.enforce(context, 'audit:detail',
@@ -586,7 +610,7 @@ class AuditsController(rest.RestController):
         return self._get_audits_collection(marker, limit,
                                            sort_key, sort_dir, expand,
                                            resource_url,
-                                           goal=goal)
+                                           goal=goal, state=state)
 
     @wsme_pecan.wsexpose(Audit, wtypes.text)
     def get_one(self, audit):

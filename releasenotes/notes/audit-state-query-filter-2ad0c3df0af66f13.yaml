@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds the optional ``state`` query parameter to the audit collection APIs:
+    ``GET /v1/audits`` and ``GET /v1/audits/detail``. The parameter filters
+    audits by the existing Watcher audit state values before pagination.
+fixes:
+  - |
+    Audit collection ``next`` links now preserve active audit filters, including
+    the new ``state`` filter. This allows API clients such as Horizon plugins to
+    follow paginated filtered results without rebuilding query strings.

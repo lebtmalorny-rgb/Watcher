@@ -117,6 +117,16 @@ r_audit:
   in: query
   required: false
   type: string
+r_audit_state:
+  description: |
+    Optional audit state used for filtering Audit collection results. Valid
+    values are ``PENDING``, ``ONGOING``, ``SUCCEEDED``, ``FAILED``,
+    ``CANCELLED``, ``SUSPENDED``, and ``DELETED``. The value is matched
+    exactly. Filtering by ``DELETED`` only returns soft-deleted audits when
+    the request also allows deleted records.
+  in: query
+  required: false
+  type: string
 r_goal:
   description: |
     The UUID or name of the Goal.

@@ -109,6 +109,7 @@ Request
 
    - goal: r_goal
    - strategy: r_strategy
+   - state: r_audit_state
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
@@ -156,6 +157,7 @@ Request
 
    - goal: r_goal
    - strategy: r_strategy
+   - state: r_audit_state
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir

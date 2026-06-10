@@ -150,6 +150,22 @@ class TestListAudit(api_base.FunctionalTest):
         response = self.get_json('/audits/detail')
         self.assertEqual([], response['audits'])
 
+    def test_detail_with_state_filter(self):
+        expected_audit = obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Pending Audit', state=objects.audit.State.PENDING)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Succeeded Audit', state=objects.audit.State.SUCCEEDED)
+
+        response = self.get_json(
+            '/audits/detail?state=%s' % objects.audit.State.PENDING)
+
+        self.assertEqual(1, len(response['audits']))
+        self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
+        self.assertEqual(objects.audit.State.PENDING,
+                         response['audits'][0]['state'])
+
     def test_detail_against_single(self):
         audit = obj_utils.create_test_audit(self.context)
         response = self.get_json('/audits/%s/detail' % audit['uuid'],
@@ -167,6 +183,118 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertEqual(len(audit_list), len(response['audits']))
         uuids = [s['uuid'] for s in response['audits']]
         self.assertEqual(sorted(audit_list), sorted(uuids))
+
+    def test_many_with_state_filter(self):
+        audit_list = []
+        for id_ in range(5):
+            state = (objects.audit.State.PENDING if id_ < 3
+                     else objects.audit.State.SUCCEEDED)
+            audit = obj_utils.create_test_audit(
+                self.context, id=id_,
+                uuid=utils.generate_uuid(), name='My Audit {0}'.format(id_),
+                state=state)
+            if state == objects.audit.State.PENDING:
+                audit_list.append(audit.uuid)
+
+        response = self.get_json(
+            '/audits?state=%s' % objects.audit.State.PENDING)
+
+        self.assertEqual(len(audit_list), len(response['audits']))
+        self.assertTrue(all(
+            audit['state'] == objects.audit.State.PENDING
+            for audit in response['audits']))
+        uuids = [audit['uuid'] for audit in response['audits']]
+        self.assertEqual(sorted(audit_list), sorted(uuids))
+
+    def test_many_with_state_filter_and_limit_keeps_next_filter(self):
+        for id_ in range(5):
+            state = (objects.audit.State.PENDING if id_ < 3
+                     else objects.audit.State.FAILED)
+            obj_utils.create_test_audit(
+                self.context, id=id_,
+                uuid=utils.generate_uuid(), name='My Audit {0}'.format(id_),
+                state=state)
+
+        response = self.get_json(
+            '/audits?state=%s&limit=2' % objects.audit.State.PENDING)
+
+        self.assertEqual(2, len(response['audits']))
+        self.assertTrue(all(
+            audit['state'] == objects.audit.State.PENDING
+            for audit in response['audits']))
+        self.assertIn('state=%s' % objects.audit.State.PENDING,
+                      response['next'])
+
+    def test_many_with_goal_and_state_filter(self):
+        goal = obj_utils.create_test_goal(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='TEST_GOAL_2')
+        strategy = obj_utils.create_test_strategy(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='TEST_STRATEGY_2', goal_id=goal.id)
+        other_goal = obj_utils.create_test_goal(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='TEST_GOAL_3')
+        other_goal_strategy = obj_utils.create_test_strategy(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='TEST_STRATEGY_3', goal_id=other_goal.id)
+
+        expected_audit = obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Matching Audit', goal_id=goal.id, strategy_id=strategy.id,
+            state=objects.audit.State.PENDING)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Wrong State Audit', goal_id=goal.id,
+            strategy_id=strategy.id, state=objects.audit.State.SUCCEEDED)
+        obj_utils.create_test_audit(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Wrong Goal Audit', goal_id=other_goal.id,
+            strategy_id=other_goal_strategy.id,
+            state=objects.audit.State.PENDING)
+
+        response = self.get_json('/audits?goal=%s&state=%s' % (
+            goal.uuid, objects.audit.State.PENDING))
+
+        self.assertEqual(1, len(response['audits']))
+        self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
+
+    def test_many_with_strategy_and_state_filter(self):
+        goal = obj_utils.create_test_goal(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='TEST_GOAL_2')
+        strategy = obj_utils.create_test_strategy(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='TEST_STRATEGY_2', goal_id=goal.id)
+        other_strategy = obj_utils.create_test_strategy(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='TEST_STRATEGY_3', goal_id=goal.id)
+
+        expected_audit = obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Matching Audit', goal_id=goal.id, strategy_id=strategy.id,
+            state=objects.audit.State.PENDING)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Wrong State Audit', goal_id=goal.id,
+            strategy_id=strategy.id, state=objects.audit.State.SUCCEEDED)
+        obj_utils.create_test_audit(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Wrong Strategy Audit', goal_id=goal.id,
+            strategy_id=other_strategy.id, state=objects.audit.State.PENDING)
+
+        response = self.get_json('/audits?strategy=%s&state=%s' % (
+            strategy.uuid, objects.audit.State.PENDING))
+
+        self.assertEqual(1, len(response['audits']))
+        self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
+
+    def test_many_with_invalid_state_filter(self):
+        response = self.get_json('/audits?state=UNKNOWN',
+                                 expect_errors=True)
+
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.assertIn('Invalid audit state', response.json['error_message'])
 
     def test_many_without_soft_deleted(self):
         audit_list = []
