@@ -9,3 +9,8 @@ fixes:
     Audit collection ``next`` links now preserve active audit filters, including
     the new ``state`` filter. This allows API clients such as Horizon plugins to
     follow paginated filtered results without rebuilding query strings.
+  - |
+    Audit collection filters for ``goal`` and ``strategy`` now remain correlated
+    to the same audit row when both filters are used together. This prevents
+    extra audits from being returned for combined ``goal``, ``strategy``, and
+    ``state`` queries.

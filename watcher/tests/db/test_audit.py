@@ -361,6 +361,36 @@ class DbAuditTestCase(base.DbTestCase):
         self.assertEqual(sorted([audit1['id'], audit2['id'], audit3['id']]),
                          sorted([r.id for r in res]))
 
+    def test_get_audit_list_with_goal_strategy_and_state_filters(self):
+        goal = utils.create_test_goal(
+            id=2, uuid=w_utils.generate_uuid(), name='DUMMY_GOAL')
+        strategy = utils.create_test_strategy(
+            id=2, uuid=w_utils.generate_uuid(), name='DUMMY_STRATEGY',
+            goal_id=goal.id)
+        other_strategy = utils.create_test_strategy(
+            id=3, uuid=w_utils.generate_uuid(), name='OTHER_STRATEGY',
+            goal_id=goal.id)
+
+        audit1 = utils.create_test_audit(
+            id=10, uuid=w_utils.generate_uuid(), name='Matching Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            state=objects.audit.State.PENDING)
+        utils.create_test_audit(
+            id=11, uuid=w_utils.generate_uuid(), name='Wrong State Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            state=objects.audit.State.SUCCEEDED)
+        utils.create_test_audit(
+            id=12, uuid=w_utils.generate_uuid(), name='Wrong Strategy Audit',
+            goal_id=goal.id, strategy_id=other_strategy.id,
+            state=objects.audit.State.PENDING)
+
+        res = self.dbapi.get_audit_list(
+            self.context,
+            filters={'goal_uuid': goal.uuid,
+                     'strategy_uuid': strategy.uuid,
+                     'state': objects.audit.State.PENDING})
+        self.assertEqual([audit1['id']], [r.id for r in res])
+
     def test_get_audit_list_with_filter_by_uuid(self):
         audit = utils.create_test_audit()
         res = self.dbapi.get_audit_list(

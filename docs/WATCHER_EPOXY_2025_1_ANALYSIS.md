@@ -174,7 +174,7 @@ Current DB behavior in `watcher/db/sqlalchemy/api.py`:
 
 - `_add_audits_filters()` already allows filtering by plain field `state`.
 - `_add_audits_filters()` allows `goal_uuid`, `goal_name`, `strategy_uuid`,
-  and `strategy_name` via joins.
+  and `strategy_name`.
 - `_add_audits_filters()` does not support `audit_template_uuid`.
 
 Low-risk implementation:
@@ -195,6 +195,7 @@ test_many_with_state_filter
 test_many_with_state_filter_and_limit_keeps_next_filter
 test_many_with_goal_and_state_filter
 test_many_with_strategy_and_state_filter
+test_many_with_goal_strategy_and_state_filter
 test_many_with_invalid_state_filter
 test_detail_with_state_filter
 ```
@@ -204,6 +205,7 @@ Implementation status on this branch:
 - `GET /v1/audits?state=...` is implemented.
 - `GET /v1/audits/detail?state=...` is implemented.
 - `state` is validated against existing `objects.audit.State` constants.
+- `GET /v1/audits?goal=...&strategy=...&state=...` is covered.
 - Active filters are preserved in collection `next` links.
 - No DB migration is required.
 - No Audit object field or object version change is required.

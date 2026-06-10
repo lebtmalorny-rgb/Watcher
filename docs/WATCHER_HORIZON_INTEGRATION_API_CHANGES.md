@@ -92,6 +92,10 @@ GET /v1/audits?goal=<GOAL_UUID_OR_NAME>&state=PENDING
 GET /v1/audits?strategy=<STRATEGY_UUID_OR_NAME>&state=PENDING
 ```
 
+```http
+GET /v1/audits?goal=<GOAL_UUID_OR_NAME>&strategy=<STRATEGY_UUID_OR_NAME>&state=PENDING
+```
+
 The backend applies all filters together before pagination.
 
 For `GET /v1/audits/detail`, this change adds only the `state` filter. Existing
