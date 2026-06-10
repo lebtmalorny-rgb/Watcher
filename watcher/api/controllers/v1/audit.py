@@ -134,6 +134,11 @@ class AuditPostType(wtypes.Base):
             raise exception.AuditIntervalNotSpecified(
                 audit_type=self.audit_type)
 
+        if (self.audit_type == objects.audit.AuditType.CONTINUOUS.value and
+                self.force is True):
+            raise exception.Invalid(
+                _('Force is not allowed for CONTINUOUS audits.'))
+
         if self.audit_template_uuid and self.goal:
             raise exception.Invalid('Either audit_template_uuid '
                                     'or goal should be provided.')

@@ -14,3 +14,8 @@ fixes:
     to the same audit row when both filters are used together. This prevents
     extra audits from being returned for combined ``goal``, ``strategy``, and
     ``state`` queries.
+  - |
+    Creating a ``CONTINUOUS`` audit with ``force=True`` now returns
+    ``400 Bad Request``. The ``force`` option remains available for existing
+    non-continuous audit creation flows where the Watcher microversion contract
+    allows it.

@@ -19,9 +19,13 @@ OpenStack Epoxy / 2025.1
 This document describes Watcher backend changes that are relevant for a
 standalone Horizon Watcher plugin.
 
-The current implemented change is intentionally small and backward-compatible:
+The current implemented changes are intentionally small and backward-compatible:
 
 - add an optional audit `state` query filter to audit collection APIs;
+- document and regression-test the existing audit create contract used by UI
+  clients;
+- reject `force=True` when creating `CONTINUOUS` audits, because force applies
+  to immediate non-continuous execution and is ambiguous for scheduled audits;
 - keep the Audit response schema unchanged;
 - keep the database schema unchanged;
 - keep the Watcher versioned object schema unchanged.
@@ -141,6 +145,33 @@ controlled by the existing deleted-record visibility behavior. Filtering by
 `state=DELETED` only returns deleted audits when the request context/header
 allows deleted records.
 
+### Create audits compatibility contract
+
+Endpoint:
+
+```http
+POST /v1/audits
+```
+
+This patch does not add request or response fields to audit creation. It
+clarifies and tests the behavior Horizon can rely on when creating audits:
+
+- `audit_type=ONESHOT` keeps the existing immediate execution behavior.
+  `force` remains available through the existing microversion contract.
+- `audit_type=CONTINUOUS` requires `interval`. Plain second intervals and
+  cron-style intervals keep their existing behavior.
+- `audit_type=CONTINUOUS` accepts and returns `auto_trigger`.
+- `audit_type=CONTINUOUS` with `force=True` returns `400 Bad Request`.
+  Horizon should omit `force` or send `false` for scheduled continuous audits.
+- `audit_type=EVENT` can be created without `interval` and starts in
+  `PENDING`.
+- `parameters` are accepted for template-backed audits when they match the
+  selected strategy schema. Existing validation still rejects unknown
+  parameters, missing required parameters, or invalid parameter values.
+
+No API microversion, response body schema, database column, or Watcher object
+version changes are required for this create-path validation.
+
 ## Data Model Changes
 
 There are no database schema changes for the `state` filter.
@@ -180,6 +211,11 @@ Recommended UI behavior:
 - use server-side `state` filtering for audit list views;
 - send only valid uppercase Watcher audit states;
 - follow Watcher-provided `next` links for pagination;
+- omit `force` for `CONTINUOUS` audit creation and expose it only where the UI
+  creates immediate non-continuous audits under the existing microversion
+  contract;
+- send strategy `parameters` only after validating them against the selected
+  strategy schema exposed by Watcher;
 - do not emulate `audit_template_uuid` filtering client-side unless the plugin
   has already fetched all relevant pages and explicitly labels the result as
   client-filtered.

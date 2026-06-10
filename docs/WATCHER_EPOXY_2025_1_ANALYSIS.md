@@ -251,7 +251,7 @@ Recommended decision:
 
 ## Audit Create Coverage
 
-Already present or mostly present:
+Verified on this branch:
 
 - `CONTINUOUS` with interval.
 - cron-style interval.
@@ -260,23 +260,25 @@ Already present or mostly present:
 - parameters validation with predefined strategy schema.
 - start/end time for continuous audits behind microversion support.
 - `force` for non-continuous audits.
+- `EVENT` audit create starts in `PENDING` and does not trigger the Decision
+  Engine immediately.
+- `CONTINUOUS` audit create preserves `auto_trigger`.
+- `CONTINUOUS` audit create with `force=True` returns `400 Bad Request`.
+- template-backed audit create persists schema-valid strategy `parameters`.
 
-Gaps to address:
+Remaining gap to address separately:
 
-- `EVENT` audit create should have an explicit regression test.
-- `force=True` for `CONTINUOUS` is not rejected by the current controller.
-  If Horizon must enforce this contract, add backend validation and a negative
-  API test.
 - Invalid interval currently has a test expecting HTTP 500 due to an existing
   bug path. If changing validation behavior, update it carefully and document
   the behavior change.
 
-Suggested tests:
+Implemented regression tests:
 
 ```text
 test_create_event_audit
-test_create_continuous_audit_with_force_returns_400
-test_create_oneshot_audit_with_force_true
+test_create_continuous_audit_with_auto_trigger
+test_create_continuous_audit_with_force_not_allowed
+test_create_audit_with_strategy_parameters
 ```
 
 ## Audit PATCH

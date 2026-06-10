@@ -847,6 +847,41 @@ class TestPost(api_base.FunctionalTest):
         self.assertTrue(utils.is_uuid_like(response.json['uuid']))
 
     @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
+    def test_create_event_audit(self, mock_trigger_audit):
+        mock_trigger_audit.return_value = mock.ANY
+
+        audit_dict = post_get_test_audit(
+            params_to_exclude=['uuid', 'state', 'interval', 'scope',
+                               'next_run_time', 'hostname', 'goal'])
+        audit_dict['audit_type'] = objects.audit.AuditType.EVENT.value
+
+        response = self.post_json('/audits', audit_dict)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.CREATED, response.status_int)
+        self.assertEqual(objects.audit.AuditType.EVENT.value,
+                         response.json['audit_type'])
+        self.assertEqual(objects.audit.State.PENDING,
+                         response.json['state'])
+        self.assertFalse(mock_trigger_audit.called)
+
+    @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
+    def test_create_continuous_audit_with_auto_trigger(
+            self, mock_trigger_audit):
+        mock_trigger_audit.return_value = mock.ANY
+
+        audit_dict = post_get_test_audit(
+            params_to_exclude=['uuid', 'state', 'scope',
+                               'next_run_time', 'hostname', 'goal'])
+        audit_dict['audit_type'] = objects.audit.AuditType.CONTINUOUS.value
+        audit_dict['interval'] = '1200'
+        audit_dict['auto_trigger'] = True
+
+        response = self.post_json('/audits', audit_dict)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.CREATED, response.status_int)
+        self.assertTrue(response.json['auto_trigger'])
+
+    @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
     def test_create_continuous_audit_with_wrong_interval(self,
                                                          mock_trigger_audit):
         mock_trigger_audit.return_value = mock.ANY
@@ -883,6 +918,30 @@ class TestPost(api_base.FunctionalTest):
                               'for CONTINUOUS.')
         self.assertTrue(response.json['error_message'])
         self.assertIn(expected_error_msg, response.json['error_message'])
+
+    @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
+    def test_create_continuous_audit_with_force_not_allowed(
+            self, mock_trigger_audit):
+        mock_trigger_audit.return_value = mock.ANY
+
+        audit_dict = post_get_test_audit(
+            params_to_exclude=['uuid', 'state', 'scope',
+                               'next_run_time', 'hostname', 'goal'])
+        audit_dict['audit_type'] = objects.audit.AuditType.CONTINUOUS.value
+        audit_dict['interval'] = '1200'
+        audit_dict['force'] = True
+
+        response = self.post_json(
+            '/audits',
+            audit_dict,
+            headers={'OpenStack-API-Version': 'infra-optim 1.2'},
+            expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        expected_error_msg = 'Force is not allowed for CONTINUOUS audits.'
+        self.assertTrue(response.json['error_message'])
+        self.assertIn(expected_error_msg, response.json['error_message'])
+        assert not mock_trigger_audit.called
 
     @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
     def test_create_oneshot_audit_with_period(self, mock_trigger_audit):
@@ -1009,6 +1068,24 @@ class TestPost(api_base.FunctionalTest):
         self.assertTrue(response.json['error_message'])
         self.assertIn(expected_error_msg, response.json['error_message'])
         assert not mock_trigger_audit.called
+
+    @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
+    def test_create_audit_with_strategy_parameters(
+            self, mock_trigger_audit):
+        mock_trigger_audit.return_value = mock.ANY
+        audit_template = self.prepare_audit_template_strategy_with_parameter()
+
+        audit_dict = api_utils.audit_post_data(parameters={'fake1': 5.5})
+        audit_dict['audit_template_uuid'] = audit_template['uuid']
+        del_keys = ['uuid', 'goal_id', 'strategy_id', 'state', 'interval',
+                    'scope', 'next_run_time', 'hostname']
+        for k in del_keys:
+            del audit_dict[k]
+
+        response = self.post_json('/audits', audit_dict)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.CREATED, response.status_int)
+        self.assertEqual({'fake1': 5.5}, response.json['parameters'])
 
     def prepare_audit_template_strategy_with_parameter(self):
         fake_spec = {
