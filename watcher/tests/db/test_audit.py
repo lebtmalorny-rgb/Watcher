@@ -391,6 +391,93 @@ class DbAuditTestCase(base.DbTestCase):
                      'state': objects.audit.State.PENDING})
         self.assertEqual([audit1['id']], [r.id for r in res])
 
+    def test_get_audit_list_with_audit_template_filter(self):
+        goal = utils.create_test_goal(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_GOAL')
+        strategy = utils.create_test_strategy(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_STRATEGY',
+            goal_id=goal.id)
+        audit_template = utils.create_test_audit_template(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_1',
+            goal_id=goal.id, strategy_id=strategy.id)
+        other_template = utils.create_test_audit_template(
+            id=3, uuid=w_utils.generate_uuid(), name='TEMPLATE_2',
+            goal_id=goal.id, strategy_id=strategy.id)
+
+        audit1 = utils.create_test_audit(
+            id=20, uuid=w_utils.generate_uuid(), name='Template Audit 1',
+            goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.PENDING)
+        audit2 = utils.create_test_audit(
+            id=21, uuid=w_utils.generate_uuid(), name='Template Audit 2',
+            goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.SUCCEEDED)
+        utils.create_test_audit(
+            id=22, uuid=w_utils.generate_uuid(), name='Other Template Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=other_template.id,
+            state=objects.audit.State.PENDING)
+        utils.create_test_audit(
+            id=23, uuid=w_utils.generate_uuid(), name='No Template Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            state=objects.audit.State.PENDING)
+
+        res = self.dbapi.get_audit_list(
+            self.context,
+            filters={'audit_template_uuid': audit_template.uuid})
+
+        self.assertEqual(
+            sorted([audit1['id'], audit2['id']]),
+            sorted([r.id for r in res]))
+
+    def test_get_audit_list_with_audit_template_and_related_filters(self):
+        goal = utils.create_test_goal(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_GOAL')
+        strategy = utils.create_test_strategy(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_STRATEGY',
+            goal_id=goal.id)
+        other_strategy = utils.create_test_strategy(
+            id=3, uuid=w_utils.generate_uuid(), name='OTHER_TEMPLATE_STRATEGY',
+            goal_id=goal.id)
+        audit_template = utils.create_test_audit_template(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_1',
+            goal_id=goal.id, strategy_id=strategy.id)
+        other_template = utils.create_test_audit_template(
+            id=3, uuid=w_utils.generate_uuid(), name='TEMPLATE_2',
+            goal_id=goal.id, strategy_id=strategy.id)
+
+        audit1 = utils.create_test_audit(
+            id=30, uuid=w_utils.generate_uuid(), name='Matching Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.PENDING)
+        utils.create_test_audit(
+            id=31, uuid=w_utils.generate_uuid(), name='Wrong State Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.SUCCEEDED)
+        utils.create_test_audit(
+            id=32, uuid=w_utils.generate_uuid(), name='Wrong Strategy Audit',
+            goal_id=goal.id, strategy_id=other_strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.PENDING)
+        utils.create_test_audit(
+            id=33, uuid=w_utils.generate_uuid(), name='Wrong Template Audit',
+            goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=other_template.id,
+            state=objects.audit.State.PENDING)
+
+        res = self.dbapi.get_audit_list(
+            self.context,
+            filters={'audit_template_uuid': audit_template.uuid,
+                     'goal_uuid': goal.uuid,
+                     'strategy_uuid': strategy.uuid,
+                     'state': objects.audit.State.PENDING})
+
+        self.assertEqual([audit1['id']], [r.id for r in res])
+
     def test_get_audit_list_with_filter_by_uuid(self):
         audit = utils.create_test_audit()
         res = self.dbapi.get_audit_list(

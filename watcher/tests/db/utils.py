@@ -92,6 +92,7 @@ def get_test_audit(**kwargs):
         'parameters': kwargs.get('parameters', {}),
         'interval': kwargs.get('interval', '3600'),
         'goal_id': kwargs.get('goal_id', 1),
+        'audit_template_id': kwargs.get('audit_template_id', None),
         'strategy_id': kwargs.get('strategy_id', None),
         'scope': kwargs.get('scope', []),
         'auto_trigger': kwargs.get('auto_trigger', False),
