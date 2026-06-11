@@ -553,6 +553,45 @@ class TestPatch(api_base.FunctionalTest):
         applier_mock.assert_called_once_with(mock.ANY,
                                              self.action_plan.uuid)
 
+    def test_replace_state_cancelled_cancels_actions(self):
+        action_plan = obj_utils.create_test_action_plan(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            state=objects.action_plan.State.PENDING)
+        linked_pending_action = obj_utils.create_test_action(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            action_plan_id=action_plan.id,
+            state=objects.action.State.PENDING)
+        linked_ongoing_action = obj_utils.create_test_action(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            action_plan_id=action_plan.id,
+            state=objects.action.State.ONGOING)
+        other_action_plan = obj_utils.create_test_action_plan(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            state=objects.action_plan.State.PENDING)
+        unrelated_action = obj_utils.create_test_action(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            action_plan_id=other_action_plan.id,
+            state=objects.action.State.PENDING)
+
+        response = self.patch_json(
+            '/action_plans/%s' % action_plan.uuid,
+            [{'path': '/state', 'value': objects.action_plan.State.CANCELLED,
+              'op': 'replace'}])
+
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.OK, response.status_code)
+        self.assertEqual(objects.action_plan.State.CANCELLED,
+                         response.json['state'])
+
+        for action in (linked_pending_action, linked_ongoing_action):
+            action_response = self.get_json('/actions/%s' % action.uuid)
+            self.assertEqual(objects.action.State.CANCELLED,
+                             action_response['state'])
+
+        action_response = self.get_json('/actions/%s' % unrelated_action.uuid)
+        self.assertEqual(objects.action.State.PENDING,
+                         action_response['state'])
+
 
 ALLOWED_TRANSITIONS = [
     {"original_state": objects.action_plan.State.RECOMMENDED,

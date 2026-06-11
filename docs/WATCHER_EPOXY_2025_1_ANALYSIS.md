@@ -318,11 +318,13 @@ Already covered:
   plan row.
 - Filtered action plan `next` links preserve active `audit_uuid` and
   `strategy` filters.
+- Cancelling an action plan through PATCH updates actions that belong to that
+  action plan to `CANCELLED` and leaves unrelated actions unchanged.
 
-Possible additional hardening:
+Implemented regression test:
 
 ```text
-test_actionplan_cancel_pending_cancels_actions
+test_replace_state_cancelled_cancels_actions
 ```
 
 ## Data Model API
