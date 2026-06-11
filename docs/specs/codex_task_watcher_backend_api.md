@@ -238,7 +238,7 @@ Required behavior:
 Ensure these are stable and tested:
 
 ```http
-GET   /v1/action_plans?audit=<audit_uuid>&limit=<n>&marker=<uuid>&sort_key=<field>&sort_dir=asc|desc
+GET   /v1/action_plans?audit_uuid=<audit_uuid>&limit=<n>&marker=<uuid>&sort_key=<field>&sort_dir=asc|desc
 PATCH /v1/action_plans/<action_plan_uuid>
 POST  /v1/action_plans/<action_plan_uuid>/start
 ```
@@ -281,16 +281,16 @@ Investigate `GET /v1/data_model` and implement the least risky fix consistent wi
 Preferred behavior for Horizon/plugin compatibility:
 
 ```http
-GET /v1/data_model?type=compute
-GET /v1/data_model?type=compute&detail=True
-GET /v1/data_model?type=compute&audit=<audit_uuid>
+GET /v1/data_model?data_model_type=compute
+GET /v1/data_model?data_model_type=compute&detail=true
+GET /v1/data_model?data_model_type=compute&audit_uuid=<audit_uuid>
 ```
 
 Required work:
 
-1. Ensure `type=compute` is efficient enough for normal Horizon use.
-2. Ensure `audit=<uuid>` filtering works when provided.
-3. Ensure `detail=True` is explicit and does not become the implicit default.
+1. Ensure `data_model_type=compute` is efficient enough for normal Horizon use.
+2. Ensure `audit_uuid=<uuid>` filtering works when provided.
+3. Ensure `detail=true` is explicit and does not become the implicit default.
 4. For missing `type`, choose one of the following after inspecting existing API expectations:
    - preserve old behavior but optimize it;
    - default safely to `compute` if compatible;

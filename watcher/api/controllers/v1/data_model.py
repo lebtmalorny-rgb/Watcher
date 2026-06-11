@@ -23,11 +23,35 @@ from pecan import rest
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
+from watcher._i18n import _
 from watcher.api.controllers.v1 import types
 from watcher.api.controllers.v1 import utils
 from watcher.common import exception
 from watcher.common import policy
 from watcher.decision_engine import rpcapi
+
+
+_TRUE_VALUES = ('true', '1')
+_FALSE_VALUES = ('false', '0')
+
+
+def _is_set(value):
+    return value is not None and value is not wtypes.Unset
+
+
+def _parse_detail(detail):
+    if not _is_set(detail):
+        return False
+
+    value = detail.lower()
+    if value in _TRUE_VALUES:
+        return True
+    if value in _FALSE_VALUES:
+        return False
+
+    raise exception.Invalid(
+        _('Invalid boolean value for detail: %s. Acceptable values are '
+          'true, false, 1, or 0.') % detail)
 
 
 class DataModelController(rest.RestController):
@@ -40,8 +64,9 @@ class DataModelController(rest.RestController):
     """A flag to indicate if the requests to this controller are coming
     from the top-level resource DataModel."""
 
-    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, types.uuid)
-    def get_all(self, data_model_type='compute', audit_uuid=None):
+    @wsme_pecan.wsexpose(wtypes.text, wtypes.text, types.uuid, wtypes.text)
+    def get_all(self, data_model_type='compute', audit_uuid=None,
+                detail=None):
         """Retrieve information about the given data model.
 
         :param data_model_type: The type of data model user wants to list.
@@ -50,9 +75,14 @@ class DataModelController(rest.RestController):
                                 The default value is compute.
         :param audit_uuid: The UUID of the audit,  used to filter data model
                            by the scope in audit.
+        :param detail: Whether to return detailed data model information.
         """
         if not utils.allow_list_datamodel():
             raise exception.NotAcceptable
+        detail_requested = _is_set(detail)
+        if detail_requested and not utils.allow_data_model_detail():
+            raise exception.NotAcceptable
+        detail = _parse_detail(detail)
         if self.from_data_model:
             raise exception.OperationNotPermitted
         allowed_data_model_type = [
@@ -68,5 +98,6 @@ class DataModelController(rest.RestController):
         rpc_all_data_model = de_client.get_data_model_info(
             context,
             data_model_type,
-            audit_uuid)
+            audit_uuid,
+            detail=detail)
         return rpc_all_data_model

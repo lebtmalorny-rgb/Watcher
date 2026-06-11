@@ -19,13 +19,7 @@ Watcher plugin, но не ломают существующий Watcher API Epox
 - не backfill-ить historical audits автоматически в runtime;
 - каждое новое поле или endpoint покрывать negative/compatibility tests.
 
-Текущий максимум API версии:
-
-```text
-1.4 - webhook trigger API
-```
-
-Планируемые P2 microversions:
+Текущий максимум API версии после P2:
 
 ```text
 1.5 - dedicated cancel endpoint для action plans
@@ -176,6 +170,8 @@ audit/detail create path, но не как единственный механи
 
 ## P2.3: `detail` flag для Data Model API
 
+Статус реализации: реализовано в backend API microversion `1.7`.
+
 ### Новый query parameter
 
 ```http
@@ -210,11 +206,13 @@ DataModelEndpoint.get_data_model_info(..., detail=False)
 Для `detail=false` endpoint возвращает текущий результат
 `available_data_model.to_list()`.
 
-Для `detail=true` нужно использовать только стабильный serializer data model.
-Если в Common Data Model нет устойчивого detailed serializer, реализацию
-следует отложить и оставить P2.3 в статусе design-only. Нельзя возвращать
-случайные internal Python-object dumps, потому что это сразу станет публичным
-REST contract.
+Для `detail=true` endpoint возвращает существующий стабильный serializer
+`available_data_model.to_string()`. Для compute data model это XML-строка вида
+`<ModelRoot>...</ModelRoot>`.
+
+Важно: это не новый JSON detail schema. Horizon plugin должен трактовать
+`context` как строку с XML при `detail=true`, либо показывать ее как raw/detail
+view до появления отдельной согласованной JSON-схемы.
 
 ### Validation
 
@@ -233,7 +231,8 @@ REST contract.
   `406 Not Acceptable`;
 - default behavior без `detail` не меняется;
 - `detail=false` возвращает текущий compact result;
-- `detail=true` вызывает RPC с `detail=True`;
+- `detail=true` вызывает RPC с `detail=True` и endpoint использует
+  `to_string()`;
 - invalid boolean возвращает `400`;
 - invalid `data_model_type` продолжает возвращать `404`;
 - `audit_uuid` продолжает передаваться в Decision Engine API.
@@ -274,8 +273,7 @@ watcher-db-manage audit-template-backfill --apply
 3. Добавить microversion `1.6` и `audit_template_uuid` response field.
 4. Добавить api-ref/releasenote/tests для audit template UUID response.
 5. Проверить наличие стабильного detailed serializer для data model.
-6. Если serializer есть, добавить microversion `1.7` и `detail` flag.
-7. Если serializer нет, оставить P2.3 design-only до отдельного решения.
+6. Добавить microversion `1.7` и `detail` flag.
 
 ## Verification matrix
 
@@ -285,7 +283,9 @@ watcher-db-manage audit-template-backfill --apply
 watcher.tests.api.v1.test_action_plan
 watcher.tests.api.v1.test_audits
 watcher.tests.api.v1.test_data_model
-watcher.tests.api.v1.test_versions
+watcher.tests.api.v1.test_microversions
+watcher.tests.decision_engine.test_rpcapi
+watcher.tests.decision_engine.messaging.test_data_model_endpoint
 ```
 
 Дополнительно:

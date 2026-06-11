@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds REST API microversion 1.7 with an optional ``detail`` query
+    parameter for ``GET /v1/data_model``. Omitting ``detail`` or setting it to
+    false preserves the existing compact ``context`` list response. Setting
+    ``detail=true`` returns the stable XML data model representation in the
+    ``context`` field.

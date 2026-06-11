@@ -226,8 +226,9 @@ Implemented on this branch:
   clears the audit reference instead of deleting or blocking existing audits.
 - `GET /v1/audits?audit_template_uuid=<uuid>` is a server-side filter.
 - `GET /v1/audits/detail?audit_template_uuid=<uuid>` is a server-side filter.
-- The response body shape is unchanged; `audit_template_uuid` is not returned
-  in audit response bodies.
+- The response body shape is unchanged for API microversions below `1.6`.
+- Starting with API microversion `1.6`, audit response bodies include public
+  `audit_template_uuid`; internal numeric `audit_template_id` is not returned.
 - Historical audits are not backfilled.
 
 ## Audit Create Coverage
@@ -315,7 +316,7 @@ Current REST behavior in `watcher/api/controllers/v1/data_model.py`:
 - `GET /v1/data_model` defaults to `data_model_type='compute'`.
 - `GET /v1/data_model?data_model_type=compute` is supported.
 - `audit_uuid` can be passed to filter by audit scope.
-- There is no `detail=True` parameter.
+- In base Epoxy there is no `detail=True` REST parameter.
 - The API parameter is `data_model_type`, not `type`.
 
 Interpretation:
@@ -337,6 +338,10 @@ Verified on this branch:
 - explicit `data_model_type=compute`.
 - `audit_uuid` is passed through to the Decision Engine API.
 - invalid `data_model_type` returns `404 Not Found`.
+- API microversion `1.7` adds optional `detail=true`.
+- before API `1.7`, sending `detail` returns `406 Not Acceptable`.
+- `detail=true` returns the stable XML data model serializer in `context`.
+- default compact response remains unchanged.
 
 Implemented regression tests:
 
@@ -344,6 +349,10 @@ Implemented regression tests:
 test_get_all_default_compute
 test_get_all_with_audit_uuid
 test_get_all_invalid_data_model_type
+test_get_all_with_detail_true
+test_get_all_with_detail_false
+test_get_all_with_detail_not_acceptable_before_1_7
+test_get_all_with_invalid_detail
 ```
 
 ## Services, Scoring Engines, Strategies

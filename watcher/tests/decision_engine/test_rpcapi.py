@@ -63,4 +63,18 @@ class TestDecisionEngineAPI(base.TestCase):
             mock_call.assert_called_once_with(
                 self.context, 'get_data_model_info',
                 data_model_type='compute',
-                audit=None)
+                audit=None,
+                detail=False)
+
+    def test_get_data_model_info_with_detail(self):
+        with mock.patch.object(om.RPCClient, 'call') as mock_call:
+            self.api.get_data_model_info(
+                self.context,
+                data_model_type='compute',
+                audit=None,
+                detail=True)
+            mock_call.assert_called_once_with(
+                self.context, 'get_data_model_info',
+                data_model_type='compute',
+                audit=None,
+                detail=True)

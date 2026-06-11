@@ -214,3 +214,13 @@ def allow_audit_template_uuid_response():
     """
     return pecan.request.version.minor >= (
         versions.VERSIONS.MINOR_6_AUDIT_TEMPLATE_UUID.value)
+
+
+def allow_data_model_detail():
+    """Check if we should support detailed data model output.
+
+    Version 1.7 of the API added support for the ``detail`` query parameter
+    on the data model API.
+    """
+    return pecan.request.version.minor >= (
+        versions.VERSIONS.MINOR_7_DATA_MODEL_DETAIL.value)

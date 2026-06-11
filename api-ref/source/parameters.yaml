@@ -138,6 +138,31 @@ r_audit_template_uuid:
   in: query
   required: false
   type: string
+r_audit_uuid:
+  description: |
+    Optional UUID of an audit used to scope the returned data model.
+  in: query
+  required: false
+  type: string
+r_data_model_detail:
+  description: |
+    Optional flag requesting detailed data model output. Valid values are
+    ``true``, ``false``, ``1``, and ``0``. When omitted or false, the
+    response body keeps the existing compact ``context`` list. When true,
+    ``context`` is the stable XML string produced by the data model
+    serializer.
+  in: query
+  required: false
+  type: boolean
+  min_version: 1.7
+r_data_model_type:
+  description: |
+    Type of data model the user wants to list. Default type is ``compute``.
+    Supported values: ``compute``. Future support values: ``storage`` and
+    ``baremetal``.
+  in: query
+  required: false
+  type: string
 r_goal:
   description: |
     The UUID or name of the Goal.
@@ -267,15 +292,6 @@ audit_endtime_req:
   required: false
   type: string
   min_version: 1.1
-audit_template_uuid_resp:
-  description: |
-    UUID of the Audit Template associated with this Audit, or ``null`` when
-    the Audit was not created from an Audit Template or the template reference
-    has been cleared.
-  in: body
-  required: false
-  type: string
-  min_version: 1.6
 audit_endtime_resp:
   description: |
     The UTC time after which audit can't be executed.
@@ -356,6 +372,15 @@ audit_strategy:
   in: body
   required: false
   type: string
+audit_template_uuid_resp:
+  description: |
+    UUID of the Audit Template associated with this Audit, or ``null`` when
+    the Audit was not created from an Audit Template or the template reference
+    has been cleared.
+  in: body
+  required: false
+  type: string
+  min_version: 1.6
 audit_type:
   description: |
     Type of this audit. Can only be either ONESHOT or CONTINUOUS.
@@ -408,6 +433,15 @@ created_at:
   in: body
   required: true
   type: string
+data_model_context:
+  description: |
+    Data model payload. For the compact response this is a list of flattened
+    compute node and server mappings. Starting with API microversion 1.7,
+    when ``detail=true`` is requested, this field is an XML string produced by
+    the data model serializer.
+  in: body
+  required: true
+  type: array or string
 deleted_at:
   description: |
     The date and time when the resource was deleted. The date and time

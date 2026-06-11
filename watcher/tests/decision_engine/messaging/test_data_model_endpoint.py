@@ -27,6 +27,24 @@ class TestDataModelEndpoint(unittest.TestCase):
     def setUp(self):
         self.endpoint_instance = data_model_endpoint.DataModelEndpoint('fake')
 
+    def _patch_collector_model(self, available_data_model):
+        collector = mock.Mock()
+        latest_model = mock.Mock()
+        audit_scope_handler = mock.Mock()
+        collector.get_latest_cluster_data_model.return_value = latest_model
+        collector.get_audit_scope_handler.return_value = audit_scope_handler
+        audit_scope_handler.get_scoped_model.return_value = \
+            available_data_model
+
+        collector_manager = mock.Mock()
+        collector_manager.get_cluster_model_collector.return_value = collector
+        patcher = mock.patch.object(
+            manager, 'CollectorManager', return_value=collector_manager)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        return collector_manager, collector, audit_scope_handler, latest_model
+
     @mock.patch.object(audit.Audit, 'get')
     def test_get_audit_scope(self, mock_get):
         mock_get.return_value = mock.Mock(scope='fake_scope')
@@ -48,7 +66,41 @@ class TestDataModelEndpoint(unittest.TestCase):
             context=None,
             audit=audit_name)
 
-    @mock.patch.object(manager, 'CollectorManager', mock.Mock())
     def test_get_data_model_info(self):
+        available_model = mock.Mock()
+        available_model.to_list.return_value = []
+        self._patch_collector_model(available_model)
+
         result = self.endpoint_instance.get_data_model_info(context='fake')
         self.assertIn('context', result)
+
+    def test_get_data_model_info_uses_compact_serializer_by_default(self):
+        available_model = mock.Mock()
+        available_model.to_list.return_value = [{'server_uuid': 'server'}]
+        self._patch_collector_model(available_model)
+
+        result = self.endpoint_instance.get_data_model_info(context='fake')
+
+        self.assertEqual({'context': [{'server_uuid': 'server'}]}, result)
+        available_model.to_list.assert_called_once_with()
+        available_model.to_string.assert_not_called()
+
+    def test_get_data_model_info_uses_detail_serializer(self):
+        available_model = mock.Mock()
+        available_model.to_string.return_value = '<ModelRoot />'
+        self._patch_collector_model(available_model)
+
+        result = self.endpoint_instance.get_data_model_info(
+            context='fake', detail=True)
+
+        self.assertEqual({'context': '<ModelRoot />'}, result)
+        available_model.to_string.assert_called_once_with()
+        available_model.to_list.assert_not_called()
+
+    def test_get_data_model_info_returns_empty_context_without_model(self):
+        self._patch_collector_model(None)
+
+        result = self.endpoint_instance.get_data_model_info(
+            context='fake', detail=True)
+
+        self.assertEqual({'context': []}, result)

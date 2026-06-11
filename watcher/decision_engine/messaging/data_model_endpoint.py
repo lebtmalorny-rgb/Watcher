@@ -43,7 +43,7 @@ class DataModelEndpoint(object):
         return scope
 
     def get_data_model_info(self, context, data_model_type='compute',
-                            audit=None):
+                            audit=None, detail=False):
         if audit is not None:
             scope = self.get_audit_scope(context, audit)
         else:
@@ -57,4 +57,6 @@ class DataModelEndpoint(object):
             collector.get_latest_cluster_data_model())
         if not available_data_model:
             return {"context": []}
+        if detail:
+            return {"context": available_data_model.to_string()}
         return {"context": available_data_model.to_list()}

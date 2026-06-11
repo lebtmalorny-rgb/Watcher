@@ -35,5 +35,9 @@ microversions:
 - `1.6`: `audit_template_uuid` в audit response body;
 - `1.7`: `detail=true` для `GET /v1/data_model`.
 
+Для `GET /v1/data_model?detail=true` целевой backend-контракт в `1.7` - raw
+XML-строка в поле `context`, полученная через стабильный serializer data
+model. Compact response без `detail` не меняется.
+
 Главное правило для всей работы: улучшать backend-контракт для Horizon, но не
 ломать существующий Watcher API.

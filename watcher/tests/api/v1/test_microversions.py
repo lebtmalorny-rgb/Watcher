@@ -94,8 +94,8 @@ class TestMicroversions(api_base.FunctionalTest):
         self.assertTrue(all(x in response.json.keys() for x in
                             self.controller_list_response))
 
-    def test_p2_audit_template_uuid_is_latest_microversion(self):
-        self.assertEqual('1.6', versions.max_version_string())
+    def test_p2_data_model_detail_is_latest_microversion(self):
+        self.assertEqual('1.7', versions.max_version_string())
 
     def test_unsupported_version(self):
         response = self.get_json(

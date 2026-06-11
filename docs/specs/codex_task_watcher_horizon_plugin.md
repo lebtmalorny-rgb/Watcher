@@ -385,9 +385,12 @@ def datamodel_list(request, model_type="compute", audit=None, detail=False):
 Required behavior:
 
 - Default `model_type` must be `compute`.
-- Never call datamodel list without `type` by default.
-- `detail=True` must be explicit.
-- `audit` may be passed when user wants the model linked to a specific audit.
+- Send backend query parameter `data_model_type=compute` by default.
+- `detail=true` must be explicit and requires backend API `>= 1.7`.
+- `audit_uuid` may be passed when user wants the model scoped to a specific
+  audit.
+- When `detail=true`, backend `context` is an XML string, not a JSON object
+  schema.
 - If the backend call times out or returns too much data, show a Horizon-friendly error and preserve page usability.
 
 ### Services
@@ -639,10 +642,10 @@ Use this data in create forms to warn when required datasource, metrics, or CDM 
 
 Features:
 
-- default `type=compute`;
+- default `data_model_type=compute`;
 - optional audit filter;
 - explicit `detail` switch;
-- raw JSON view;
+- compact JSON view and optional raw XML detail view;
 - safe timeout/error handling.
 
 Do not load all datamodel types by default.

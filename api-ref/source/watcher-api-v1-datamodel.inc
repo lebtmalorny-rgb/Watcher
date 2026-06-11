@@ -10,6 +10,12 @@ Data Model
 optimization solutions. Users can easily view the data model by the
 API.
 
+.. versionchanged:: 1.7
+
+   Added the optional ``detail`` query parameter. The default compact
+   response is unchanged. When ``detail=true`` is requested, the ``context``
+   response field contains the stable XML representation of the data model.
+
 
 List Data Model
 ===============
@@ -27,14 +33,16 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - audit: r_audit
-   - type: r_type
+   - data_model_type: r_data_model_type
+   - audit_uuid: r_audit_uuid
+   - detail: r_data_model_detail
 
 Response
 --------
 
 .. rest_parameters:: parameters.yaml
 
+    - context: data_model_context
     - server_uuid: server_uuid
     - server_name: server_name
     - server_vcpus: server_vcpus
@@ -54,4 +62,9 @@ Response
 **Example JSON representation of a Data Model:**
 
 .. literalinclude:: samples/datamodel-list-response.json
+   :language: javascript
+
+**Example JSON representation of a detailed Data Model:**
+
+.. literalinclude:: samples/datamodel-list-detail-response.json
    :language: javascript

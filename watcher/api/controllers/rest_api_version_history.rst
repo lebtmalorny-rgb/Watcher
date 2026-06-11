@@ -55,3 +55,13 @@ Added ``audit_template_uuid`` to Audit response bodies. The field is exposed
 for Audit resources created from an Audit Template and is ``null`` when there
 is no associated Audit Template. The internal numeric ``audit_template_id``
 is not exposed by the REST API.
+
+1.7
+---
+Added the optional ``detail`` query parameter to the Data Model API::
+
+  GET /v1/data_model?detail=true
+
+When ``detail`` is omitted or false, the API keeps the existing compact
+``context`` list response. When ``detail`` is true, ``context`` contains the
+stable XML representation produced by the data model serializer.

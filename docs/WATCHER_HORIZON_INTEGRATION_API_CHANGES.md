@@ -236,11 +236,14 @@ Data model integration details:
 - Historical audits are not backfilled.
 - If a source audit template is hard-deleted or purged, existing audits remain
   and their `audit_template_id` is cleared by the database.
-- Audit response body fields are unchanged.
+- Audit response body fields are unchanged for API microversions below `1.6`.
+- Starting with API microversion `1.6`, Audit responses expose public
+  `audit_template_uuid`; the internal numeric `audit_template_id` remains
+  hidden.
 
-Because the Audit response schema is unchanged, existing Watcher clients and
-Horizon code that deserialize audit responses do not need response model
-updates for this feature.
+Because the Audit response schema is expanded only behind microversion `1.6`,
+existing Watcher clients and Horizon code that request older microversions do
+not need response model updates for this feature.
 
 ## Horizon Plugin Contract
 
@@ -249,6 +252,8 @@ Recommended capability flags for a Horizon Watcher plugin:
 ```python
 WATCHER_BACKEND_SUPPORTS_AUDIT_STATE_FILTER = True
 WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = True
+WATCHER_BACKEND_EXPOSES_AUDIT_TEMPLATE_UUID = True  # API >= 1.6
+WATCHER_BACKEND_SUPPORTS_DATA_MODEL_DETAIL = True  # API >= 1.7
 ```
 
 Recommended UI behavior:
@@ -261,6 +266,12 @@ Recommended UI behavior:
   `strategy` filters remain active across pages;
 - use server-side `audit_template_uuid` filtering when the backend capability
   flag is enabled;
+- read `audit_template_uuid` from Audit response bodies only when API `>= 1.6`
+  was negotiated;
+- send `detail=true` to `GET /v1/data_model` only when API `>= 1.7` was
+  negotiated;
+- handle detailed data model `context` as an XML string, not as a JSON object
+  schema;
 - omit `force` for `CONTINUOUS` audit creation and expose it only where the UI
   creates immediate non-continuous audits under the existing microversion
   contract;
@@ -276,9 +287,10 @@ Recommended UI behavior:
 branch.
 
 The backend persists the source audit template as `audits.audit_template_id`
-when an audit is created with `audit_template_uuid`. The response body shape is
-unchanged: audit list/detail responses still do not expose
-`audit_template_uuid`.
+when an audit is created with `audit_template_uuid`. For API microversions
+below `1.6`, the response body shape is unchanged. Starting with API `1.6`,
+audit list/detail/single/create responses expose public `audit_template_uuid`.
+The internal numeric `audit_template_id` is never exposed through REST.
 
 Integration notes:
 
@@ -292,6 +304,35 @@ Integration notes:
 - Audits whose source audit template has been purged keep their audit history,
   but their cleared `audit_template_id` means they no longer match this filter.
 
+### Data model detail
+
+Starting with API microversion `1.7`, `GET /v1/data_model` accepts an optional
+`detail` query parameter:
+
+```http
+GET /v1/data_model?detail=true
+OpenStack-API-Version: infra-optim 1.7
+```
+
+Compatibility contract:
+
+- omitting `detail` or setting `detail=false` preserves the existing compact
+  response where `context` is a list from `available_data_model.to_list()`;
+- `detail=true`, `detail=True`, and `detail=1` request detailed output;
+- `detail=false`, `detail=False`, and `detail=0` request compact output;
+- invalid values return `400 Bad Request`;
+- sending the `detail` parameter before API `1.7` returns `406 Not
+  Acceptable`.
+
+Detailed output uses the existing stable data model serializer:
+
+```text
+available_data_model.to_string()
+```
+
+For the compute data model this means `context` is an XML string rooted at
+`<ModelRoot>`. This is not a new JSON Common Data Model schema.
+
 ## Files Changed
 
 Code:
@@ -300,12 +341,21 @@ Code:
 watcher/api/controllers/v1/types.py
 watcher/api/controllers/v1/audit.py
 watcher/api/controllers/v1/action_plan.py
+watcher/api/controllers/v1/data_model.py
+watcher/api/controllers/v1/utils.py
+watcher/api/controllers/v1/versions.py
+watcher/decision_engine/rpcapi.py
+watcher/decision_engine/messaging/data_model_endpoint.py
 watcher/db/sqlalchemy/api.py
 watcher/db/sqlalchemy/models.py
 watcher/db/sqlalchemy/alembic/versions/c2f4b8d6e3a1_add_audit_template_id_to_audits.py
 watcher/objects/audit.py
 watcher/tests/api/v1/test_audits.py
 watcher/tests/api/v1/test_actions_plans.py
+watcher/tests/api/v1/test_data_model.py
+watcher/tests/api/v1/test_microversions.py
+watcher/tests/decision_engine/test_rpcapi.py
+watcher/tests/decision_engine/messaging/test_data_model_endpoint.py
 watcher/tests/db/test_action_plan.py
 watcher/tests/db/test_audit.py
 watcher/tests/db/utils.py
@@ -317,7 +367,9 @@ Documentation:
 ```text
 api-ref/source/parameters.yaml
 api-ref/source/watcher-api-v1-audits.inc
+api-ref/source/watcher-api-v1-datamodel.inc
 docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
 releasenotes/notes/audit-state-query-filter-2ad0c3df0af66f13.yaml
 releasenotes/notes/audit-template-filter-4f65d2cb0dfd13f2.yaml
+releasenotes/notes/data-model-detail-api-7d2e4a1f9c0b6e53.yaml
 ```

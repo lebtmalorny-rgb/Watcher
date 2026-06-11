@@ -39,7 +39,7 @@ class TestListDataModel(api_base.FunctionalTest):
             headers={'OpenStack-API-Version': 'infra-optim 1.3'})
         self.assertEqual('fake_response_value', response)
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
-            mock.ANY, 'compute', None)
+            mock.ANY, 'compute', None, detail=False)
 
     def test_get_all_default_compute(self):
         response = self.get_json(
@@ -47,7 +47,7 @@ class TestListDataModel(api_base.FunctionalTest):
             headers={'OpenStack-API-Version': 'infra-optim 1.3'})
         self.assertEqual('fake_response_value', response)
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
-            mock.ANY, 'compute', None)
+            mock.ANY, 'compute', None, detail=False)
 
     def test_get_all_with_audit_uuid(self):
         audit_uuid = '5eac11d2-555f-4ba7-bef9-3b2edc94160f'
@@ -56,7 +56,39 @@ class TestListDataModel(api_base.FunctionalTest):
             headers={'OpenStack-API-Version': 'infra-optim 1.3'})
         self.assertEqual('fake_response_value', response)
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
-            mock.ANY, 'compute', audit_uuid)
+            mock.ANY, 'compute', audit_uuid, detail=False)
+
+    def test_get_all_with_detail_true(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true',
+            headers={'OpenStack-API-Version': 'infra-optim 1.7'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None, detail=True)
+
+    def test_get_all_with_detail_false(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=0',
+            headers={'OpenStack-API-Version': 'infra-optim 1.7'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None, detail=False)
+
+    def test_get_all_with_detail_not_acceptable_before_1_7(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true',
+            headers={'OpenStack-API-Version': 'infra-optim 1.6'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.NOT_ACCEPTABLE, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
+
+    def test_get_all_with_invalid_detail(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=yes',
+            headers={'OpenStack-API-Version': 'infra-optim 1.7'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
 
     def test_get_all_invalid_data_model_type(self):
         response = self.get_json(
