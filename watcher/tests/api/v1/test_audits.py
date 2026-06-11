@@ -464,6 +464,27 @@ class TestPatch(api_base.FunctionalTest):
             response['updated_at']).replace(tzinfo=None)
         self.assertEqual(test_time, return_updated_at)
 
+    @mock.patch('oslo_utils.timeutils.utcnow')
+    def test_replace_name_ok(self, mock_utcnow):
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
+
+        new_name = 'renamed-audit'
+        response = self.get_json('/audits/%s' % self.audit.uuid)
+        self.assertNotEqual(new_name, response['name'])
+
+        response = self.patch_json(
+            '/audits/%s' % self.audit.uuid,
+            [{'path': '/name', 'value': new_name, 'op': 'replace'}])
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.OK, response.status_code)
+
+        response = self.get_json('/audits/%s' % self.audit.uuid)
+        self.assertEqual(new_name, response['name'])
+        return_updated_at = timeutils.parse_isotime(
+            response['updated_at']).replace(tzinfo=None)
+        self.assertEqual(test_time, return_updated_at)
+
     def test_replace_non_existent_audit(self):
         response = self.patch_json(
             '/audits/%s' % utils.generate_uuid(),
