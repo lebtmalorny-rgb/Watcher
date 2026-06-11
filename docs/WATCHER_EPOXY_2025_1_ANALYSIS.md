@@ -340,7 +340,14 @@ Verified on this branch:
 - invalid `data_model_type` returns `404 Not Found`.
 - API microversion `1.7` adds optional `detail=true`.
 - before API `1.7`, sending `detail` returns `406 Not Acceptable`.
-- `detail=true` returns the stable XML data model serializer in `context`.
+- `detail=true` without `detail_format=json` returns the stable XML data
+  model serializer in `context`.
+- API microversion `1.8` adds optional
+  `detail=true&detail_format=json`.
+- `detail_format=json` returns a stable JSON detail object in `context` when
+  a scoped/latest data model is available.
+- if no scoped/latest data model is available, `context` remains the existing
+  empty list sentinel `[]`.
 - default compact response remains unchanged.
 
 Implemented regression tests:
@@ -353,6 +360,13 @@ test_get_all_with_detail_true
 test_get_all_with_detail_false
 test_get_all_with_detail_not_acceptable_before_1_7
 test_get_all_with_invalid_detail
+test_get_all_with_detail_format_json
+test_get_all_with_detail_format_xml
+test_get_all_detail_true_1_8_without_format_keeps_default
+test_get_all_detail_format_not_acceptable_before_1_8
+test_get_all_invalid_detail_format
+test_get_all_detail_format_requires_detail_true
+test_get_all_detail_format_rejects_detail_false
 ```
 
 ## Services, Scoring Engines, Strategies

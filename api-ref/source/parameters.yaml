@@ -149,8 +149,8 @@ r_data_model_detail:
     Optional flag requesting detailed data model output. Valid values are
     ``true``, ``false``, ``1``, and ``0``. When omitted or false, the
     response body keeps the existing compact ``context`` list. When true,
-    ``context`` is the stable XML string produced by the data model
-    serializer.
+    and ``detail_format=json`` is not requested, ``context`` is the stable XML
+    string produced by the data model serializer.
   in: query
   required: false
   type: boolean

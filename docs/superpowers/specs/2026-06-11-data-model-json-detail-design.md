@@ -55,11 +55,14 @@ Compatibility matrix:
 ```text
 1.7 detail=true                         -> context = XML string
 1.8 detail=true                         -> context = XML string
-1.8 detail=true&detail_format=json      -> context = JSON object
+1.8 detail=true&detail_format=json      -> context = JSON object, if a model
+                                           is available
 ```
 
 The existing XML detail behavior remains available in `1.8` when
 `detail_format` is omitted.
+If no scoped/latest data model is available, the existing `{"context": []}`
+sentinel is preserved for all detail formats.
 
 ## Validation Contract
 
@@ -251,11 +254,12 @@ detail=true, detail_format=json       -> to_dict()
 ```
 
 The API controller should parse and validate `detail_format`, then pass it
-through:
+through only when it is explicitly requested. Default calls must keep the old
+RPC kwarg shape for rolling-upgrade compatibility:
 
 ```text
 DataModelController.get_all(..., detail_format=None)
-DecisionEngineAPI.get_data_model_info(..., detail=False, detail_format=None)
+DecisionEngineAPI.get_data_model_info(..., detail=False)
 DataModelEndpoint.get_data_model_info(..., detail=False, detail_format=None)
 ```
 
@@ -306,8 +310,10 @@ API tests:
 
 RPC tests:
 
-- `DecisionEngineAPI.get_data_model_info()` forwards `detail_format`.
-- default `detail_format=None` is preserved for existing callers.
+- `DecisionEngineAPI.get_data_model_info()` forwards explicit
+  `detail_format`.
+- default `detail_format=None` preserves the old RPC kwarg shape for existing
+  callers.
 
 Endpoint tests:
 

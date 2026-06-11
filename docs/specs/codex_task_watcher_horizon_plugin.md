@@ -60,6 +60,8 @@ Add capability detection or conservative fallback settings:
 ```python
 WATCHER_BACKEND_SUPPORTS_AUDIT_STATE_FILTER = False
 WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = False
+WATCHER_BACKEND_SUPPORTS_DATA_MODEL_DETAIL = False
+WATCHER_BACKEND_SUPPORTS_DATA_MODEL_JSON_DETAIL = False
 ```
 
 If the backend has already been patched to support `state` and `audit_template_uuid` audit filters, these can be enabled in deployment settings. If disabled, the plugin must not send those filters to the API.
@@ -378,7 +380,8 @@ def strategy_state(request, strategy_name):
 ### Data model
 
 ```python
-def datamodel_list(request, model_type="compute", audit=None, detail=False):
+def datamodel_list(request, model_type="compute", audit=None, detail=False,
+                   detail_format=None):
     """List Watcher CDM data."""
 ```
 
@@ -387,10 +390,15 @@ Required behavior:
 - Default `model_type` must be `compute`.
 - Send backend query parameter `data_model_type=compute` by default.
 - `detail=true` must be explicit and requires backend API `>= 1.7`.
+- `detail_format=json` must be explicit and requires backend API `>= 1.8`.
 - `audit_uuid` may be passed when user wants the model scoped to a specific
   audit.
-- When `detail=true`, backend `context` is an XML string, not a JSON object
-  schema.
+- When `detail=true` is used without `detail_format=json`, backend `context`
+  is an XML string.
+- When `detail=true&detail_format=json` is used and a data model is
+  available, backend `context` is a JSON object.
+- For any detail format, `context == []` means the backend has no
+  scoped/latest data model available.
 - If the backend call times out or returns too much data, show a Horizon-friendly error and preserve page usability.
 
 ### Services

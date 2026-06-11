@@ -93,6 +93,8 @@ class DataModelController(rest.RestController):
         :param audit_uuid: The UUID of the audit,  used to filter data model
                            by the scope in audit.
         :param detail: Whether to return detailed data model information.
+        :param detail_format: Optional detailed output format, ``xml`` or
+                              ``json``. Requires ``detail=true``.
         """
         if not utils.allow_list_datamodel():
             raise exception.NotAcceptable

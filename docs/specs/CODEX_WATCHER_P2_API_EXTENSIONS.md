@@ -340,7 +340,8 @@ watcher/decision_engine/messaging/data_model_endpoint.py
 - API `1.7`: `detail=true` возвращает XML string в `context`;
 - API `1.8`: `detail=true` без `detail_format` возвращает XML string;
 - API `1.8`: `detail=true&detail_format=xml` возвращает XML string;
-- API `1.8`: `detail=true&detail_format=json` возвращает JSON object;
+- API `1.8`: `detail=true&detail_format=json` возвращает JSON object при
+  наличии data model;
 - `detail_format` требует `detail=true`;
 - `detail_format` недоступен до API `1.8`.
 

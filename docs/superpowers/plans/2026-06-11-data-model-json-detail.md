@@ -8,6 +8,13 @@
 
 **Tech Stack:** Python, Watcher REST controllers with WSME/Pecan, oslo.messaging RPC client, Watcher Decision Engine model classes, stestr, Sphinx api-ref, reno release notes.
 
+**Final implementation note:** during execution, the RPC contract was adjusted
+for rolling-upgrade compatibility. `detail_format` is accepted by public
+methods, but the RPC client sends it only when it is explicitly non-`None`;
+default compact/XML calls keep the old RPC kwarg shape. The final docs also
+preserve the existing `{"context": []}` sentinel when no scoped/latest data
+model is available, including JSON detail requests.
+
 ---
 
 ## Context And Paths
@@ -61,7 +68,8 @@ Modify:
   - Select `to_list()`, `to_string()`, or `to_dict()` based on `detail` and `detail_format`.
 
 - `watcher/decision_engine/rpcapi.py`
-  - Forward `detail_format` to the conductor RPC call.
+  - Forward explicit `detail_format` to the conductor RPC call.
+  - Do not send `detail_format=None` for default compact/XML calls.
 
 - `watcher/tests/decision_engine/messaging/test_data_model_endpoint.py`
   - Cover compact, XML detail, JSON detail, and missing model behavior.
@@ -460,26 +468,25 @@ Add JSON detail and XML explicit tests:
 
 - [ ] **Step 2: Update failing RPC tests**
 
-In `watcher/tests/decision_engine/test_rpcapi.py`, update the default expected call in `test_get_data_model_info`:
+In `watcher/tests/decision_engine/test_rpcapi.py`, keep the default expected
+call in `test_get_data_model_info` on the legacy RPC kwarg shape:
 
 ```python
             mock_call.assert_called_once_with(
                 self.context, 'get_data_model_info',
                 data_model_type='compute',
                 audit=None,
-                detail=False,
-                detail_format=None)
+                detail=False)
 ```
 
-Update `test_get_data_model_info_with_detail` expected call:
+Keep `test_get_data_model_info_with_detail` on the same legacy kwarg shape:
 
 ```python
             mock_call.assert_called_once_with(
                 self.context, 'get_data_model_info',
                 data_model_type='compute',
                 audit=None,
-                detail=True,
-                detail_format=None)
+                detail=True)
 ```
 
 Add this test:
@@ -520,10 +527,16 @@ In `watcher/decision_engine/rpcapi.py`, change the method signature and call:
 ```python
     def get_data_model_info(self, context, data_model_type, audit,
                             detail=False, detail_format=None):
+        kwargs = {
+            'data_model_type': data_model_type,
+            'audit': audit,
+            'detail': detail,
+        }
+        if detail_format is not None:
+            kwargs['detail_format'] = detail_format
+
         return self.conductor_client.call(
-            context, 'get_data_model_info',
-            data_model_type=data_model_type, audit=audit, detail=detail,
-            detail_format=detail_format)
+            context, 'get_data_model_info', **kwargs)
 ```
 
 In `watcher/decision_engine/messaging/data_model_endpoint.py`, change the method signature and serializer branch:
@@ -578,20 +591,22 @@ git commit -m "Thread data model detail format through RPC"
 
 - [ ] **Step 1: Write failing API tests**
 
-In `watcher/tests/api/v1/test_data_model.py`, update existing assertions so all RPC calls include `detail_format=None`.
+In `watcher/tests/api/v1/test_data_model.py`, keep existing/default RPC
+assertions on the old kwarg shape. Add `detail_format` only to assertions where
+the request explicitly includes `detail_format`.
 
 Example for compact calls:
 
 ```python
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
-            mock.ANY, 'compute', None, detail=False, detail_format=None)
+            mock.ANY, 'compute', None, detail=False)
 ```
 
 Example for existing XML detail calls:
 
 ```python
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
-            mock.ANY, 'compute', None, detail=True, detail_format=None)
+            mock.ANY, 'compute', None, detail=True)
 ```
 
 Add these tests to `class TestListDataModel(api_base.FunctionalTest):`
@@ -621,7 +636,7 @@ Add these tests to `class TestListDataModel(api_base.FunctionalTest):`
             headers={'OpenStack-API-Version': 'infra-optim 1.8'})
         self.assertEqual('fake_response_value', response)
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
-            mock.ANY, 'compute', None, detail=True, detail_format=None)
+            mock.ANY, 'compute', None, detail=True)
 
     def test_get_all_detail_format_not_acceptable_before_1_8(self):
         response = self.get_json(
@@ -827,9 +842,9 @@ Added the optional ``detail_format`` query parameter to the Data Model API::
 
   GET /v1/data_model?detail=true&detail_format=json
 
-When ``detail_format=json`` is requested with ``detail=true``, ``context``
-contains the stable JSON data model detail object. Omitting ``detail_format``
-keeps the existing XML detail behavior.
+When ``detail_format=json`` is requested with ``detail=true`` and a data model
+is available, ``context`` contains the stable JSON data model detail object.
+Omitting ``detail_format`` keeps the existing XML detail behavior.
 ```
 
 - [ ] **Step 2: Update api-ref parameters**
@@ -842,7 +857,8 @@ r_data_model_detail_format:
     Optional detailed data model response format. Valid values are ``xml`` and
     ``json``. This parameter requires ``detail=true``. When omitted with
     ``detail=true``, the response keeps the XML detail format. The ``json``
-    format returns a stable JSON object in ``context``.
+    format returns a stable JSON object in ``context`` when a data model is
+    available.
   in: query
   required: false
   type: string
@@ -859,7 +875,9 @@ data_model_context:
     when ``detail=true`` is requested without ``detail_format=json``, this
     field is an XML string produced by the data model serializer. Starting
     with API microversion 1.8, when ``detail=true&detail_format=json`` is
-    requested, this field is a stable JSON detail object.
+    requested and a data model is available, this field is a stable JSON
+    detail object. If no scoped or latest data model is available, the
+    response keeps the existing empty list sentinel in ``context``.
   in: body
   required: true
   type: array, string, or object
@@ -953,8 +971,9 @@ features:
   - |
     Adds REST API microversion 1.8 with ``detail_format=json`` for
     ``GET /v1/data_model`` detailed responses. The new format requires
-    ``detail=true`` and returns a stable JSON object in ``context``. Existing
-    compact responses and the API 1.7 XML detail behavior are unchanged.
+    ``detail=true`` and returns a stable JSON object in ``context`` when a
+    data model is available. Existing compact responses, empty data model
+    responses, and the API 1.7 XML detail behavior are unchanged.
 ```
 
 - [ ] **Step 6: Update Russian/contract docs**
@@ -970,7 +989,8 @@ and include these compatibility rules:
 ```text
 API 1.7 detail=true keeps XML context.
 API 1.8 detail=true without detail_format keeps XML context.
-API 1.8 detail=true&detail_format=json returns JSON object context.
+API 1.8 detail=true&detail_format=json returns JSON object context when a
+data model is available; no-model responses keep context=[].
 Horizon should request detail_format=json only after negotiating API >= 1.8.
 ```
 
