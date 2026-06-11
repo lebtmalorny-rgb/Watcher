@@ -43,7 +43,7 @@ class DataModelEndpoint(object):
         return scope
 
     def get_data_model_info(self, context, data_model_type='compute',
-                            audit=None, detail=False):
+                            audit=None, detail=False, detail_format=None):
         if audit is not None:
             scope = self.get_audit_scope(context, audit)
         else:
@@ -58,5 +58,7 @@ class DataModelEndpoint(object):
         if not available_data_model:
             return {"context": []}
         if detail:
+            if detail_format == 'json':
+                return {"context": available_data_model.to_dict()}
             return {"context": available_data_model.to_string()}
         return {"context": available_data_model.to_list()}

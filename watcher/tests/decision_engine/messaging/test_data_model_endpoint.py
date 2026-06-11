@@ -85,7 +85,7 @@ class TestDataModelEndpoint(unittest.TestCase):
         available_model.to_list.assert_called_once_with()
         available_model.to_string.assert_not_called()
 
-    def test_get_data_model_info_uses_detail_serializer(self):
+    def test_get_data_model_info_uses_xml_detail_serializer(self):
         available_model = mock.Mock()
         available_model.to_string.return_value = '<ModelRoot />'
         self._patch_collector_model(available_model)
@@ -96,11 +96,60 @@ class TestDataModelEndpoint(unittest.TestCase):
         self.assertEqual({'context': '<ModelRoot />'}, result)
         available_model.to_string.assert_called_once_with()
         available_model.to_list.assert_not_called()
+        available_model.to_dict.assert_not_called()
+
+    def test_get_data_model_info_uses_json_detail_serializer(self):
+        available_model = mock.Mock()
+        available_model.to_dict.return_value = {
+            'schema': 'watcher.data_model.detail',
+            'schema_version': '1.0',
+            'model_type': 'compute',
+            'stale': False,
+            'data': {'compute_nodes': [], 'unmapped_instances': []},
+        }
+        self._patch_collector_model(available_model)
+
+        result = self.endpoint_instance.get_data_model_info(
+            context='fake', detail=True, detail_format='json')
+
+        self.assertEqual({
+            'context': {
+                'schema': 'watcher.data_model.detail',
+                'schema_version': '1.0',
+                'model_type': 'compute',
+                'stale': False,
+                'data': {'compute_nodes': [], 'unmapped_instances': []},
+            }}, result)
+        available_model.to_dict.assert_called_once_with()
+        available_model.to_string.assert_not_called()
+        available_model.to_list.assert_not_called()
+
+    def test_get_data_model_info_uses_xml_serializer_when_requested(self):
+        available_model = mock.Mock()
+        available_model.to_string.return_value = '<ModelRoot />'
+        self._patch_collector_model(available_model)
+
+        result = self.endpoint_instance.get_data_model_info(
+            context='fake', detail=True, detail_format='xml')
+
+        self.assertEqual({'context': '<ModelRoot />'}, result)
+        available_model.to_string.assert_called_once_with()
+        available_model.to_dict.assert_not_called()
+        available_model.to_list.assert_not_called()
 
     def test_get_data_model_info_returns_empty_context_without_model(self):
         self._patch_collector_model(None)
 
         result = self.endpoint_instance.get_data_model_info(
             context='fake', detail=True)
+
+        self.assertEqual({'context': []}, result)
+
+    def test_get_data_model_info_returns_empty_context_for_json_without_model(
+            self):
+        self._patch_collector_model(None)
+
+        result = self.endpoint_instance.get_data_model_info(
+            context='fake', detail=True, detail_format='json')
 
         self.assertEqual({'context': []}, result)

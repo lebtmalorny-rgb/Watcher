@@ -78,3 +78,33 @@ class TestDecisionEngineAPI(base.TestCase):
                 data_model_type='compute',
                 audit=None,
                 detail=True)
+
+    def test_get_data_model_info_with_detail_format(self):
+        with mock.patch.object(om.RPCClient, 'call') as mock_call:
+            self.api.get_data_model_info(
+                self.context,
+                data_model_type='compute',
+                audit=None,
+                detail=True,
+                detail_format='json')
+            mock_call.assert_called_once_with(
+                self.context, 'get_data_model_info',
+                data_model_type='compute',
+                audit=None,
+                detail=True,
+                detail_format='json')
+
+    def test_get_data_model_info_with_xml_detail_format(self):
+        with mock.patch.object(om.RPCClient, 'call') as mock_call:
+            self.api.get_data_model_info(
+                self.context,
+                data_model_type='compute',
+                audit=None,
+                detail=True,
+                detail_format='xml')
+            mock_call.assert_called_once_with(
+                self.context, 'get_data_model_info',
+                data_model_type='compute',
+                audit=None,
+                detail=True,
+                detail_format='xml')

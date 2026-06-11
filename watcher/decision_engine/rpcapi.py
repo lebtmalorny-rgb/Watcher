@@ -45,10 +45,17 @@ class DecisionEngineAPI(service.Service):
             context, 'get_strategy_info', strategy_name=strategy_name)
 
     def get_data_model_info(self, context, data_model_type, audit,
-                            detail=False):
+                            detail=False, detail_format=None):
+        kwargs = {
+            'data_model_type': data_model_type,
+            'audit': audit,
+            'detail': detail,
+        }
+        if detail_format is not None:
+            kwargs['detail_format'] = detail_format
+
         return self.conductor_client.call(
-            context, 'get_data_model_info',
-            data_model_type=data_model_type, audit=audit, detail=detail)
+            context, 'get_data_model_info', **kwargs)
 
 
 class DecisionEngineAPIManager(service_manager.ServiceManager):
