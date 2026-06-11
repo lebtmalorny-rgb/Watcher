@@ -116,6 +116,7 @@ class AuditPostType(wtypes.Base):
     force = wtypes.wsattr(bool, mandatory=False)
 
     def as_audit(self, context):
+        audit_template_id = None
         audit_type_values = [val.value for val in objects.audit.AuditType]
         if self.audit_type not in audit_type_values:
             raise exception.AuditTypeNotFound(audit_type=self.audit_type)
@@ -165,6 +166,7 @@ class AuditPostType(wtypes.Base):
                 raise exception.Invalid(
                     message=_('The audit template UUID or name specified is '
                               'invalid'))
+            audit_template_id = audit_template.id
             at2a = {
                 'goal': 'goal_id',
                 'strategy': 'strategy_id',
@@ -189,8 +191,6 @@ class AuditPostType(wtypes.Base):
                 self.name = "%s-%s" % (strategy.name,
                                        timeutils.utcnow().isoformat())
             elif self.audit_template_uuid:
-                audit_template = objects.AuditTemplate.get(
-                    context, self.audit_template_uuid)
                 self.name = "%s-%s" % (audit_template.name,
                                        timeutils.utcnow().isoformat())
             else:
@@ -208,6 +208,7 @@ class AuditPostType(wtypes.Base):
             audit_type=self.audit_type,
             parameters=self.parameters,
             goal_id=self.goal,
+            audit_template_id=audit_template_id,
             strategy_id=self.strategy,
             interval=self.interval,
             scope=self.scope,
@@ -218,6 +219,11 @@ class AuditPostType(wtypes.Base):
 
 
 class AuditPatchType(types.JsonPatchType):
+
+    @staticmethod
+    def internal_attrs():
+        return (types.JsonPatchType.internal_attrs() +
+                ['/audit_template', '/audit_template_id'])
 
     @staticmethod
     def mandatory_attrs():
@@ -396,7 +402,10 @@ class Audit(base.APIBase):
             setattr(self, k, kwargs.get(k, wtypes.Unset))
 
         self.fields.append('goal_id')
+        self.fields.append('audit_template_id')
         self.fields.append('strategy_id')
+        setattr(self, 'audit_template_id', kwargs.get('audit_template_id',
+                wtypes.Unset))
         fields.append('goal_uuid')
         setattr(self, 'goal_uuid', kwargs.get('goal_id',
                 wtypes.Unset))
@@ -500,7 +509,8 @@ class AuditsController(rest.RestController):
     def _get_audits_collection(self, marker, limit,
                                sort_key, sort_dir, expand=False,
                                resource_url=None, goal=None,
-                               strategy=None, state=None):
+                               strategy=None, state=None,
+                               audit_template_uuid=None):
         additional_fields = ["goal_uuid", "goal_name", "strategy_uuid",
                              "strategy_name"]
 
@@ -538,6 +548,9 @@ class AuditsController(rest.RestController):
                      'valid_states': ', '.join(sorted(VALID_AUDIT_STATES))})
             filters['state'] = state
 
+        if audit_template_uuid:
+            filters['audit_template_uuid'] = audit_template_uuid
+
         need_api_sort = api_utils.check_need_api_sort(sort_key,
                                                       additional_fields)
         sort_db_key = (sort_key if not need_api_sort
@@ -555,6 +568,8 @@ class AuditsController(rest.RestController):
             next_kwargs['strategy'] = strategy
         if state is not None:
             next_kwargs['state'] = state
+        if audit_template_uuid:
+            next_kwargs['audit_template_uuid'] = audit_template_uuid
 
         audits_collection = AuditCollection.convert_with_links(
             audits, limit, url=resource_url, expand=expand,
@@ -567,9 +582,11 @@ class AuditsController(rest.RestController):
         return audits_collection
 
     @wsme_pecan.wsexpose(AuditCollection, types.uuid, int, wtypes.text,
-                         wtypes.text, wtypes.text, wtypes.text, wtypes.text)
+                         wtypes.text, wtypes.text, wtypes.text, wtypes.text,
+                         types.uuid)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
-                goal=None, strategy=None, state=None):
+                goal=None, strategy=None, state=None,
+                audit_template_uuid=None):
         """Retrieve a list of audits.
 
         :param marker: pagination marker for large data sets.
@@ -579,6 +596,7 @@ class AuditsController(rest.RestController):
         :param goal: goal UUID or name to filter by
         :param strategy: strategy UUID or name to filter by
         :param state: audit state to filter by
+        :param audit_template_uuid: audit template UUID to filter by
         """
 
         context = pecan.request.context
@@ -587,12 +605,15 @@ class AuditsController(rest.RestController):
 
         return self._get_audits_collection(marker, limit, sort_key,
                                            sort_dir, goal=goal,
-                                           strategy=strategy, state=state)
+                                           strategy=strategy, state=state,
+                                           audit_template_uuid=
+                                           audit_template_uuid)
 
     @wsme_pecan.wsexpose(AuditCollection, wtypes.text, types.uuid, int,
-                         wtypes.text, wtypes.text, wtypes.text)
+                         wtypes.text, wtypes.text, wtypes.text, types.uuid)
     def detail(self, goal=None, marker=None, limit=None,
-               sort_key='id', sort_dir='asc', state=None):
+               sort_key='id', sort_dir='asc', state=None,
+               audit_template_uuid=None):
         """Retrieve a list of audits with detail.
 
         :param goal: goal UUID or name to filter by
@@ -601,6 +622,7 @@ class AuditsController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :param state: audit state to filter by
+        :param audit_template_uuid: audit template UUID to filter by
         """
         context = pecan.request.context
         policy.enforce(context, 'audit:detail',
@@ -615,7 +637,9 @@ class AuditsController(rest.RestController):
         return self._get_audits_collection(marker, limit,
                                            sort_key, sort_dir, expand,
                                            resource_url,
-                                           goal=goal, state=state)
+                                           goal=goal, state=state,
+                                           audit_template_uuid=
+                                           audit_template_uuid)
 
     @wsme_pecan.wsexpose(Audit, wtypes.text)
     def get_one(self, audit):

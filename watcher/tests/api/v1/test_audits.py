@@ -1263,10 +1263,11 @@ class TestPost(api_base.FunctionalTest):
         audit_dict = api_utils.audit_post_data(parameters={'fake1': 5.5})
         audit_dict['audit_template_uuid'] = audit_template.uuid
         del_keys = ['uuid', 'goal_id', 'strategy_id', 'state', 'interval',
-                    'scope', 'next_run_time', 'hostname',
-                    'audit_template_id', 'audit_template']
+                    'scope', 'next_run_time', 'hostname']
         for k in del_keys:
             del audit_dict[k]
+        for k in ('audit_template_id', 'audit_template'):
+            audit_dict.pop(k, None)
 
         response = self.post_json('/audits', audit_dict)
 
@@ -1276,6 +1277,7 @@ class TestPost(api_base.FunctionalTest):
             self.context, response.json['uuid'])
         self.assertEqual(audit_template.id, audit.audit_template_id)
         self.assertNotIn('audit_template_uuid', response.json)
+        self.assertNotIn('audit_template_id', response.json)
 
     def prepare_audit_template_strategy_with_parameter(self):
         fake_spec = {
