@@ -370,6 +370,8 @@ class Connection(api.BaseConnection):
         related_fieldmap = {
             'goal_uuid': (models.Audit.goal, models.Goal, "uuid"),
             'goal_name': (models.Audit.goal, models.Goal, "name"),
+            'audit_template_uuid': (
+                models.Audit.audit_template, models.AuditTemplate, "uuid"),
             'strategy_uuid': (
                 models.Audit.strategy, models.Strategy, "uuid"),
             'strategy_name': (

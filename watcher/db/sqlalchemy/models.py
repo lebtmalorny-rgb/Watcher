@@ -170,6 +170,8 @@ class Audit(Base):
     parameters = Column(JSONEncodedDict, nullable=True)
     interval = Column(String(36), nullable=True)
     goal_id = Column(Integer, ForeignKey('goals.id'), nullable=False)
+    audit_template_id = Column(
+        Integer, ForeignKey('audit_templates.id'), nullable=True)
     strategy_id = Column(Integer, ForeignKey('strategies.id'), nullable=True)
     scope = Column(JSONEncodedList, nullable=True)
     auto_trigger = Column(Boolean, nullable=False)
@@ -180,6 +182,8 @@ class Audit(Base):
     force = Column(Boolean, nullable=False)
 
     goal = orm.relationship(Goal, foreign_keys=goal_id, lazy=None)
+    audit_template = orm.relationship(
+        AuditTemplate, foreign_keys=audit_template_id, lazy=None)
     strategy = orm.relationship(Strategy, foreign_keys=strategy_id, lazy=None)
 
 

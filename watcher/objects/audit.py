@@ -91,7 +91,8 @@ class Audit(base.WatcherPersistentObject, base.WatcherObject,
     # Version 1.5: Added 'hostname' field
     # Version 1.6: Added 'start_time' and 'end_time' DateTime fields
     # Version 1.7: Added 'force' boolean field
-    VERSION = '1.7'
+    # Version 1.8: Added 'audit_template_id' field
+    VERSION = '1.8'
 
     dbapi = db_api.get_instance()
 
@@ -105,6 +106,7 @@ class Audit(base.WatcherPersistentObject, base.WatcherObject,
         'interval': wfields.StringField(nullable=True),
         'scope': wfields.FlexibleListOfDictField(nullable=True),
         'goal_id': wfields.IntegerField(),
+        'audit_template_id': wfields.IntegerField(nullable=True),
         'strategy_id': wfields.IntegerField(nullable=True),
         'auto_trigger': wfields.BooleanField(),
         'next_run_time': wfields.DateTimeField(nullable=True,
