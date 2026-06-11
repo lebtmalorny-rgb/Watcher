@@ -458,6 +458,53 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertIn('limit=2', response['next'])
         self.assertIn(response['audits'][-1]['uuid'], response['next'])
 
+    def test_many_with_audit_template_filter_and_sorting(self):
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Template 2')
+        other_template = obj_utils.create_test_audit_template(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Template 3')
+
+        expected_names = []
+        for id_, name in ((1, 'Template Audit C'),
+                          (3, 'Template Audit A'),
+                          (4, 'Template Audit B')):
+            obj_utils.create_test_audit(
+                self.context, id=id_, uuid=utils.generate_uuid(),
+                name=name, audit_template_id=audit_template.id)
+            expected_names.append(name)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Other Template Audit',
+            audit_template_id=other_template.id)
+
+        response = self.get_json(
+            '/audits?audit_template_uuid=%s&sort_key=name&sort_dir=desc' %
+            audit_template.uuid)
+
+        self.assertEqual(sorted(expected_names, reverse=True),
+                         [audit['name'] for audit in response['audits']])
+
+    def test_many_with_unknown_audit_template_filter(self):
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Template 2')
+        obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Template Audit', audit_template_id=audit_template.id)
+
+        response = self.get_json(
+            '/audits?audit_template_uuid=%s' % utils.generate_uuid())
+
+        self.assertEqual([], response['audits'])
+
+    def test_many_with_invalid_audit_template_filter(self):
+        response = self.get_json('/audits?audit_template_uuid=not-a-uuid',
+                                 expect_errors=True)
+
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+
     def test_many_with_invalid_state_filter(self):
         response = self.get_json('/audits?state=UNKNOWN',
                                  expect_errors=True)

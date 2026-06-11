@@ -117,6 +117,13 @@ audits.audit_template_id -> audit_templates.id ON DELETE SET NULL
 Важно: публичный audit response body не расширен. В ответах API не появляются
 `audit_template_uuid` и `audit_template_id`.
 
+Дополнительный P1 hardening:
+
+- зафиксировано поведение `audit_template_uuid + sort_key + sort_dir`;
+- unknown `audit_template_uuid` возвращает пустой список;
+- invalid UUID format для `audit_template_uuid` возвращает `400 Bad Request`;
+- эти проверки не меняют API, а только закрепляют существующий контракт.
+
 ### Audit create contract
 
 Добавлена и усилена regression coverage для сценариев создания audit, которые
@@ -362,6 +369,20 @@ watcher.tests.db.test_purge
 
 ```text
 187 tests passed
+```
+
+После P1 hardening audit-template фильтра запускался полный audit API slice:
+
+```bash
+OS_STDOUT_CAPTURE=1 OS_STDERR_CAPTURE=1 OS_TEST_TIMEOUT=30 \
+PYTHONDONTWRITEBYTECODE=1 /private/tmp/watcher-venv-py312/bin/stestr run \
+watcher.tests.api.v1.test_audits
+```
+
+Результат:
+
+```text
+150 tests passed
 ```
 
 Также проходили:
