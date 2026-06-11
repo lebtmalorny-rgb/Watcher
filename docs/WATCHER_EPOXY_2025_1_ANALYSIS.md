@@ -370,14 +370,24 @@ test_get_all_invalid_data_model_type
 Services already have list/detail/get tests, pagination tests, sort-key tests,
 and policy tests in `watcher/tests/api/v1/test_services.py`.
 
-Before adding behavior, inspect existing controller support and avoid inventing
-new parameters where the API already has a convention.
+Scoring engines already expose `marker`, `limit`, `sort_key`, and `sort_dir`
+on `GET /v1/scoring_engines` and `GET /v1/scoring_engines/detail`.
 
-Minimum useful hardening:
+Implemented regression tests:
 
-- Verify scoring engine list supports/validates `limit`, `marker`, `sort_key`,
-  `sort_dir` if the controller exposes them.
-- Verify `GET /v1/strategies/<strategy>/state` has a direct API test.
+```text
+test_scoring_engines_collection_links_keep_sorting
+test_sort_key_validation
+```
+
+Strategies already expose `GET /v1/strategies/<strategy>/state`.
+
+Implemented/strengthened regression tests:
+
+```text
+test_state
+test_policy_disallow_state
+```
 
 ## Recommended Work Order
 

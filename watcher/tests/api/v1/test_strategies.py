@@ -46,16 +46,18 @@ class TestListStrategy(api_base.FunctionalTest):
                        {"cpu_util": "available"}]},
             {"type": "CDM", "mandatory": True, "comment": "",
              "state": [{"compute_model": "available"},
-                       {"storage_model": "not available"}]},
-            {"type": "Name", "mandatory": "", "comment": "",
-             "state": strategy.name}
+                       {"storage_model": "not available"}]}
         ]
 
-        mock_strategy_info.return_value = mock_state
+        mock_strategy_info.return_value = list(mock_state)
         response = self.get_json('/strategies/%s/state' % strategy.uuid)
+        mock_strategy_info.assert_called_once_with(mock.ANY, strategy.name)
         strategy_name = [requirement["state"] for requirement in response
                          if requirement["type"] == "Name"][0]
         self.assertEqual(strategy.name, strategy_name)
+        self.assertEqual(mock_state + [{
+            "type": "Name", "mandatory": "", "comment": "",
+            "state": strategy.name}], response)
 
     def test_one(self):
         strategy = obj_utils.create_test_strategy(self.context)
@@ -284,7 +286,7 @@ class TestStrategyPolicyEnforcement(api_base.FunctionalTest):
     def test_policy_disallow_state(self):
         strategy = obj_utils.create_test_strategy(self.context)
         self._common_policy_check(
-            "strategy:get", self.get_json,
+            "strategy:state", self.get_json,
             '/strategies/%s/state' % strategy.uuid,
             expect_errors=True)
 

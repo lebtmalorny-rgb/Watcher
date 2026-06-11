@@ -105,6 +105,24 @@ class TestListScoringEngine(api_base.FunctionalTest):
         response = self.get_json('/scoring_engines/?limit=2')
         self.assertEqual(2, len(response['scoring_engines']))
 
+    def test_scoring_engines_collection_links_keep_sorting(self):
+        for idx in range(1, 6):
+            obj_utils.create_test_scoring_engine(
+                self.context, id=idx, uuid=utils.generate_uuid(),
+                name=str(idx), description='SE_{0}'.format(idx))
+
+        response = self.get_json(
+            '/scoring_engines/?limit=2&sort_key=name&sort_dir=desc')
+
+        self.assertEqual(
+            ['5', '4'],
+            [se['name'] for se in response['scoring_engines']])
+        next_marker = response['scoring_engines'][-1]['uuid']
+        self.assertIn('limit=2', response['next'])
+        self.assertIn('sort_key=name', response['next'])
+        self.assertIn('sort_dir=desc', response['next'])
+        self.assertIn(next_marker, response['next'])
+
     def test_scoring_engines_collection_links_default_limit(self):
         for idx in range(1, 6):
             obj_utils.create_test_scoring_engine(
@@ -130,7 +148,7 @@ class TestListScoringEngine(api_base.FunctionalTest):
 
     def test_sort_key_validation(self):
         response = self.get_json(
-            '/goals?sort_key=%s' % 'bad_name',
+            '/scoring_engines?sort_key=%s' % 'bad_name',
             expect_errors=True)
         self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
 
