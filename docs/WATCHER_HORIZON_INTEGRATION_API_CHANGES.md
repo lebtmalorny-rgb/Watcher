@@ -160,6 +160,8 @@ clarifies and tests the behavior Horizon can rely on when creating audits:
   `force` remains available through the existing microversion contract.
 - `audit_type=CONTINUOUS` requires `interval`. Plain second intervals and
   cron-style intervals keep their existing behavior.
+- invalid `interval` values for `audit_type=CONTINUOUS` return
+  `400 Bad Request`.
 - `audit_type=CONTINUOUS` accepts and returns `auto_trigger`.
 - `audit_type=CONTINUOUS` with `force=True` returns `400 Bad Request`.
   Horizon should omit `force` or send `false` for scheduled continuous audits.
@@ -252,6 +254,7 @@ audit-template filtering is available.
 Code:
 
 ```text
+watcher/api/controllers/v1/types.py
 watcher/api/controllers/v1/audit.py
 watcher/tests/api/v1/test_audits.py
 ```

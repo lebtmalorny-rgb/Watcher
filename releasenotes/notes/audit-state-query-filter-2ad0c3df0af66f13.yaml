@@ -19,3 +19,6 @@ fixes:
     ``400 Bad Request``. The ``force`` option remains available for existing
     non-continuous audit creation flows where the Watcher microversion contract
     allows it.
+  - |
+    Creating a ``CONTINUOUS`` audit with an invalid ``interval`` now returns
+    ``400 Bad Request`` instead of an internal server error.

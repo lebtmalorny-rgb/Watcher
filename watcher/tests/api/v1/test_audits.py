@@ -894,11 +894,9 @@ class TestPost(api_base.FunctionalTest):
 
         response = self.post_json('/audits', audit_dict, expect_errors=True)
         self.assertEqual('application/json', response.content_type)
-        self.assertEqual(HTTPStatus.INTERNAL_SERVER_ERROR, response.status_int)
-        # NOTE(dviroel): this error message check was shortened to try avoid
-        # future breakages. See bug #2089866 for more details.
-        expected_error_msg = ('columns has to be specified for iterator '
-                              'expression.')
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        expected_error_msg = ('Expected an interval or cron syntax '
+                              'but received zxc')
         self.assertTrue(response.json['error_message'])
         self.assertIn(expected_error_msg, response.json['error_message'])
 

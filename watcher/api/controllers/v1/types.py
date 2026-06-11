@@ -50,15 +50,25 @@ class IntervalOrCron(wtypes.UserType):
 
     @staticmethod
     def validate(value):
-        if not (utils.is_int_like(value) or utils.is_cron_like(value)):
-            raise exception.InvalidIntervalOrCron(name=value)
-        return value
+        if utils.is_int_like(value):
+            return value
+
+        try:
+            if utils.is_cron_like(value):
+                return value
+        except exception.CronFormatIsInvalid:
+            pass
+
+        raise exception.InvalidIntervalOrCron(name=value)
 
     @staticmethod
     def frombasetype(value):
         if value is None:
             return None
-        return IntervalOrCron.validate(value)
+        try:
+            return IntervalOrCron.validate(value)
+        except exception.InvalidIntervalOrCron as exc:
+            raise wsme.exc.ClientSideError(str(exc))
 
 
 interval_or_cron = IntervalOrCron()

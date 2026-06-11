@@ -260,21 +260,17 @@ Verified on this branch:
 - parameters validation with predefined strategy schema.
 - start/end time for continuous audits behind microversion support.
 - `force` for non-continuous audits.
+- invalid interval for `CONTINUOUS` returns `400 Bad Request`.
 - `EVENT` audit create starts in `PENDING` and does not trigger the Decision
   Engine immediately.
 - `CONTINUOUS` audit create preserves `auto_trigger`.
 - `CONTINUOUS` audit create with `force=True` returns `400 Bad Request`.
 - template-backed audit create persists schema-valid strategy `parameters`.
 
-Remaining gap to address separately:
-
-- Invalid interval currently has a test expecting HTTP 500 due to an existing
-  bug path. If changing validation behavior, update it carefully and document
-  the behavior change.
-
 Implemented regression tests:
 
 ```text
+test_create_continuous_audit_with_wrong_interval
 test_create_event_audit
 test_create_continuous_audit_with_auto_trigger
 test_create_continuous_audit_with_force_not_allowed
