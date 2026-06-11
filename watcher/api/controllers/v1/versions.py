@@ -24,7 +24,8 @@ class VERSIONS(enum.Enum):
     MINOR_3_DATAMODEL = 3  # v1.3: Add list datamodel API
     MINOR_4_WEBHOOK_API = 4  # v1.4: Add webhook trigger API
     MINOR_5_ACTION_PLAN_CANCEL = 5  # v1.5: Add action plan cancel API
-    MINOR_MAX_VERSION = 5
+    MINOR_6_AUDIT_TEMPLATE_UUID = 6  # v1.6: Add audit template UUID response
+    MINOR_MAX_VERSION = 6
 
 
 # This is the version 1 API

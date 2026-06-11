@@ -2,6 +2,7 @@
     "audits": [
         {
             "interval": null,
+            "audit_template_uuid": null,
             "strategy_uuid": "e311727b-b9b3-43ef-a5f7-8bd7ea80df25",
             "goal_uuid": "4690f8ba-18ff-45c1-99e9-159556d23810",
             "name": "dummy-2018-03-26T11:56:07.950400",

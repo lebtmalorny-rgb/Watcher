@@ -345,7 +345,7 @@ class Connection(api.BaseConnection):
         if filters is None:
             filters = {}
 
-        plain_fields = ['uuid', 'name', 'goal_id', 'strategy_id']
+        plain_fields = ['id', 'uuid', 'name', 'goal_id', 'strategy_id']
         join_fieldmap = JoinMap(
             goal_uuid=NaturalJoinFilter(
                 join_fieldname="uuid", join_model=models.Goal),

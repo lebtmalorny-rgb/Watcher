@@ -204,3 +204,13 @@ def allow_action_plan_cancel():
     """
     return pecan.request.version.minor >= (
         versions.VERSIONS.MINOR_5_ACTION_PLAN_CANCEL.value)
+
+
+def allow_audit_template_uuid_response():
+    """Check if we should expose audit_template_uuid in Audit responses.
+
+    Version 1.6 of the API added support to expose the public audit template
+    UUID associated with an Audit.
+    """
+    return pecan.request.version.minor >= (
+        versions.VERSIONS.MINOR_6_AUDIT_TEMPLATE_UUID.value)

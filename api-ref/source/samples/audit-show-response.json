@@ -1,5 +1,6 @@
 {
     "interval": "*/2 * * * *",
+    "audit_template_uuid": "2e93db2c-29d7-4314-9cb8-fbc99bc1d5e7",
     "strategy_uuid": "6b3b3902-8508-4cb0-bb85-67f32866b086",
     "goal_uuid": "e1a5a45b-f251-47cf-9c5f-fa1e66e1286a",
     "name": "test_audit",

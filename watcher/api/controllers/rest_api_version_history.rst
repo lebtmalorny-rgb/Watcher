@@ -48,3 +48,10 @@ Added a dedicated action plan cancel API::
 
 This endpoint keeps the existing cancel state transitions without requiring
 clients to build a JSON Patch request.
+
+1.6
+---
+Added ``audit_template_uuid`` to Audit response bodies. The field is exposed
+for Audit resources created from an Audit Template and is ``null`` when there
+is no associated Audit Template. The internal numeric ``audit_template_id``
+is not exposed by the REST API.

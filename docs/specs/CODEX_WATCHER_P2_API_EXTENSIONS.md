@@ -107,6 +107,8 @@ Response body должен совпадать с обычным `ActionPlan` rep
 
 ## P2.2: `audit_template_uuid` в audit response body
 
+Статус реализации: реализовано в backend API microversion `1.6`.
+
 ### Новое поле
 
 ```json

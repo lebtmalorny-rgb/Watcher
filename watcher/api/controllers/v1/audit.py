@@ -82,6 +82,8 @@ def hide_fields_in_newer_versions(obj):
         obj.end_time = wtypes.Unset
     if not api_utils.allow_force():
         obj.force = wtypes.Unset
+    if not api_utils.allow_audit_template_uuid_response():
+        obj.audit_template_uuid = wtypes.Unset
 
 
 class AuditPostType(wtypes.Base):
@@ -257,6 +259,7 @@ class Audit(base.APIBase):
     _goal_name = None
     _strategy_uuid = None
     _strategy_name = None
+    _audit_template_uuid = None
 
     def _get_goal(self, value):
         if value == wtypes.Unset:
@@ -332,6 +335,12 @@ class Audit(base.APIBase):
             if strategy:
                 self._strategy_name = strategy.name
 
+    def _get_audit_template_uuid(self):
+        return self._audit_template_uuid
+
+    def _set_audit_template_uuid(self, value):
+        self._audit_template_uuid = value
+
     uuid = types.uuid
     """Unique UUID for this audit"""
 
@@ -359,6 +368,11 @@ class Audit(base.APIBase):
     strategy_name = wtypes.wsproperty(
         wtypes.text, _get_strategy_name, _set_strategy_name, mandatory=False)
     """The name of the strategy this audit refers to"""
+
+    audit_template_uuid = wtypes.wsproperty(
+        wtypes.text, _get_audit_template_uuid, _set_audit_template_uuid,
+        mandatory=False)
+    """Audit Template UUID the audit refers to"""
 
     parameters = {wtypes.text: types.jsontype}
     """The strategy parameters for this audit"""
@@ -403,9 +417,12 @@ class Audit(base.APIBase):
 
         self.fields.append('goal_id')
         self.fields.append('audit_template_id')
+        self.fields.append('audit_template_uuid')
         self.fields.append('strategy_id')
         setattr(self, 'audit_template_id', kwargs.get('audit_template_id',
                 wtypes.Unset))
+        setattr(self, 'audit_template_uuid', kwargs.get(
+            'audit_template_uuid', None))
         fields.append('goal_uuid')
         setattr(self, 'goal_uuid', kwargs.get('goal_id',
                 wtypes.Unset))
@@ -426,7 +443,8 @@ class Audit(base.APIBase):
                                        'goal_uuid', 'interval', 'scope',
                                        'strategy_uuid', 'goal_name',
                                        'strategy_name', 'auto_trigger',
-                                       'next_run_time'])
+                                       'next_run_time',
+                                       'audit_template_uuid'])
 
         audit.links = [link.Link.make_link('self', url,
                                            'audits', audit.uuid),
@@ -438,8 +456,28 @@ class Audit(base.APIBase):
         return audit
 
     @classmethod
-    def convert_with_links(cls, rpc_audit, expand=True):
+    @staticmethod
+    def _resolve_audit_template_uuid(audit_template_id):
+        if audit_template_id in (None, wtypes.Unset):
+            return None
+        try:
+            return objects.AuditTemplate.get_by_id(
+                pecan.request.context, audit_template_id).uuid
+        except exception.AuditTemplateNotFound:
+            return None
+
+    @classmethod
+    def convert_with_links(cls, rpc_audit, expand=True,
+                           audit_template_uuid_map=None):
         audit = Audit(**rpc_audit.as_dict())
+        if api_utils.allow_audit_template_uuid_response():
+            audit_template_id = audit.audit_template_id
+            if audit_template_uuid_map is None:
+                audit.audit_template_uuid = cls._resolve_audit_template_uuid(
+                    audit_template_id)
+            else:
+                audit.audit_template_uuid = audit_template_uuid_map.get(
+                    audit_template_id)
         hide_fields_in_newer_versions(audit)
         return cls._convert_with_links(audit, pecan.request.host_url, expand)
 
@@ -479,7 +517,25 @@ class AuditCollection(collection.Collection):
     def convert_with_links(rpc_audits, limit, url=None, expand=False,
                            **kwargs):
         collection = AuditCollection()
-        collection.audits = [Audit.convert_with_links(p, expand)
+        audit_template_uuid_map = None
+        if api_utils.allow_audit_template_uuid_response():
+            audit_template_ids = set()
+            for audit in rpc_audits:
+                audit_template_id = audit.as_dict().get('audit_template_id')
+                if audit_template_id is not None:
+                    audit_template_ids.add(audit_template_id)
+            audit_template_uuid_map = {}
+            if audit_template_ids:
+                audit_templates = objects.AuditTemplate.list(
+                    pecan.request.context,
+                    filters={'id__in': tuple(audit_template_ids)})
+                audit_template_uuid_map = {
+                    audit_template.id: audit_template.uuid
+                    for audit_template in audit_templates
+                }
+
+        collection.audits = [Audit.convert_with_links(
+                             p, expand, audit_template_uuid_map)
                              for p in rpc_audits]
         collection.next = collection.get_next(limit, url=url, **kwargs)
         return collection

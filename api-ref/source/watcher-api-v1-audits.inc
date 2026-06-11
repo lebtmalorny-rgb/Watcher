@@ -69,6 +69,7 @@ version 1:
 
     - uuid: uuid
     - name: audit_name
+    - audit_template_uuid: audit_template_uuid_resp
     - audit_type: audit_type
     - strategy_uuid: strategy_uuid
     - strategy_name: strategy_name
@@ -123,6 +124,7 @@ Response
 
     - uuid: uuid
     - name: audit_name
+    - audit_template_uuid: audit_template_uuid_resp
     - audit_type: audit_type
     - strategy_uuid: strategy_uuid
     - strategy_name: strategy_name
@@ -171,6 +173,7 @@ Response
 
     - uuid: uuid
     - name: audit_name
+    - audit_template_uuid: audit_template_uuid_resp
     - audit_type: audit_type
     - strategy_uuid: strategy_uuid
     - strategy_name: strategy_name
@@ -218,6 +221,7 @@ Response
 
     - uuid: uuid
     - name: audit_name
+    - audit_template_uuid: audit_template_uuid_resp
     - audit_type: audit_type
     - strategy_uuid: strategy_uuid
     - strategy_name: strategy_name
@@ -273,6 +277,7 @@ version 1:
 
     - uuid: uuid
     - name: audit_name
+    - audit_template_uuid: audit_template_uuid_resp
     - audit_type: audit_type
     - strategy_uuid: strategy_uuid
     - strategy_name: strategy_name
@@ -328,6 +333,7 @@ Response
 
     - uuid: uuid
     - name: audit_name
+    - audit_template_uuid: audit_template_uuid_resp
     - audit_type: audit_type
     - strategy_uuid: strategy_uuid
     - strategy_name: strategy_name

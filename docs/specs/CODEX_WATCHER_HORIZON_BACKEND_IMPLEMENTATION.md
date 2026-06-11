@@ -114,8 +114,10 @@ audits.audit_template_id -> audit_templates.id ON DELETE SET NULL
 - после очистки `audit_template_id` такой audit больше не матчится
   `audit_template_uuid` фильтром.
 
-Важно: публичный audit response body не расширен. В ответах API не появляются
-`audit_template_uuid` и `audit_template_id`.
+Важно для совместимости: в API `1.0` - `1.5` публичный audit response body
+не расширен. Начиная с API `1.6` в audit response body появляется публичное
+поле `audit_template_uuid`; внутренний numeric `audit_template_id` по-прежнему
+не раскрывается.
 
 Дополнительный P1 hardening:
 
@@ -123,6 +125,34 @@ audits.audit_template_id -> audit_templates.id ON DELETE SET NULL
 - unknown `audit_template_uuid` возвращает пустой список;
 - invalid UUID format для `audit_template_uuid` возвращает `400 Bad Request`;
 - эти проверки не меняют API, а только закрепляют существующий контракт.
+
+### Audit template UUID response field
+
+Начиная с API microversion `1.6` audit responses содержат публичное поле:
+
+```json
+{
+  "audit_template_uuid": "2e93db2c-29d7-4314-9cb8-fbc99bc1d5e7"
+}
+```
+
+Где появляется поле:
+
+```http
+GET /v1/audits
+GET /v1/audits/detail
+GET /v1/audits/<AUDIT_UUID>
+POST /v1/audits
+```
+
+Поведение:
+
+- для audit, созданного через audit template, возвращается UUID template;
+- для audit, созданного напрямую от `goal`, возвращается `null`;
+- после hard-delete/purge template возвращается `null`;
+- `audit_template_id` остается internal-only и не появляется в REST response;
+- list/detail строят mapping `audit_template_id -> uuid` для текущей страницы,
+  а не делают отдельный lookup на каждую строку.
 
 ### Audit create contract
 
@@ -261,11 +291,11 @@ Upgrade behavior:
 
 Сохранены важные границы совместимости:
 
-- не добавлены новые поля в audit list/detail/create response body;
-- `audit_template_uuid` и `audit_template_id` остаются internal/provenance
-  fields;
+- для API `1.0` - `1.5` не добавлены новые поля в audit list/detail/create
+  response body;
+- в API `1.6` добавлено только публичное поле `audit_template_uuid`;
+- numeric `audit_template_id` остается internal/provenance field;
 - не добавлен `strategy` query parameter в `GET /v1/audits/detail`;
-- не изменен microversion contract;
 - существующие `goal`, `strategy`, `limit`, `marker`, `sort_key`, `sort_dir`
   behavior сохранены;
 - action plan cancel через PATCH сохранен для совместимости;
@@ -284,6 +314,7 @@ docs/specs/CODEX_WATCHER_P2_API_EXTENSIONS.md
 ```python
 WATCHER_BACKEND_SUPPORTS_AUDIT_STATE_FILTER = True
 WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = True
+WATCHER_BACKEND_EXPOSES_AUDIT_TEMPLATE_UUID = True  # API >= 1.6
 ```
 
 Horizon plugin должен:
@@ -292,8 +323,8 @@ Horizon plugin должен:
 - отправлять Watcher audit states в uppercase;
 - использовать server-side `audit_template_uuid` filter только когда включен
   capability flag;
-- не пытаться читать `audit_template_uuid` или `audit_template_id` из audit
-  response body;
+- читать `audit_template_uuid` из audit response body только при API `>= 1.6`;
+- не пытаться читать `audit_template_id` из audit response body;
 - следовать backend-provided `next` links, не пересобирать pagination URLs;
 - использовать `audit_uuid`, не `audit`, для action plan filtering;
 - не отправлять `force=True` для `CONTINUOUS` audits;
@@ -313,6 +344,8 @@ docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
 releasenotes/notes/audit-state-query-filter-2ad0c3df0af66f13.yaml
 releasenotes/notes/action-plan-filter-pagination-b4e12a2c2ad0c9df.yaml
 releasenotes/notes/audit-template-filter-4f65d2cb0dfd13f2.yaml
+releasenotes/notes/action-plan-dedicated-cancel-endpoint-3f7c9a8b1d2e4f60.yaml
+releasenotes/notes/audit-template-uuid-response-6a1f9c2e4d8b7a30.yaml
 ```
 
 Основной подробный API contract для будущего Horizon plugin:

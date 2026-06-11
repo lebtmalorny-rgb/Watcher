@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds REST API microversion 1.6 with ``audit_template_uuid`` in Audit
+    response bodies. The numeric ``audit_template_id`` remains an internal
+    database field and is not exposed through the REST API.

@@ -8,6 +8,9 @@
 
 **Tech Stack:** Watcher Pecan/WSME API controller, oslo.policy, stestr functional tests, OpenStack API microversions.
 
+**Status note:** This P2.1 plan was completed with API `1.5`. Later P2.2 work
+raises the branch maximum microversion beyond this plan.
+
 ---
 
 ### Task 1: README and design traceability
@@ -72,8 +75,8 @@ missing `cancel` action.
 
 - [x] **Step 1: Add API version 1.5**
 
-Add enum value `MINOR_5_ACTION_PLAN_CANCEL = 5` and set
-`MINOR_MAX_VERSION = 5`.
+Add enum value `MINOR_5_ACTION_PLAN_CANCEL = 5` and make API `1.5` the
+maximum supported microversion for the P2.1 change.
 
 - [x] **Step 2: Add microversion helper**
 

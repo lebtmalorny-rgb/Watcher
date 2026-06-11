@@ -267,6 +267,15 @@ audit_endtime_req:
   required: false
   type: string
   min_version: 1.1
+audit_template_uuid_resp:
+  description: |
+    UUID of the Audit Template associated with this Audit, or ``null`` when
+    the Audit was not created from an Audit Template or the template reference
+    has been cleared.
+  in: body
+  required: false
+  type: string
+  min_version: 1.6
 audit_endtime_resp:
   description: |
     The UTC time after which audit can't be executed.
