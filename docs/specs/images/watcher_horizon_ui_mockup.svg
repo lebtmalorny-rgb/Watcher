@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
+  <title id="title">Watcher Horizon UI mockup</title>
+  <desc id="desc">A Horizon Watcher plugin dashboard mockup showing audit filters, action plan controls, data model views, and capability negotiation.</desc>
+  <defs>
+    <style>
+      .page { fill: #eef3f8; }
+      .window { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 12; }
+      .topbar { fill: #263447; }
+      .sidebar { fill: #1f2937; }
+      .side-item { fill: #2f3d52; rx: 6; }
+      .side-active { fill: #3d6ea8; rx: 6; }
+      .panel { fill: #ffffff; stroke: #d6dee8; stroke-width: 1.5; rx: 8; }
+      .soft { fill: #f8fafc; stroke: #d6dee8; stroke-width: 1; rx: 6; }
+      .input { fill: #ffffff; stroke: #b8c4d1; stroke-width: 1.2; rx: 5; }
+      .button { fill: #306da8; rx: 5; }
+      .button-red { fill: #b84b4b; rx: 5; }
+      .button-muted { fill: #e6edf5; stroke: #b8c4d1; stroke-width: 1; rx: 5; }
+      .chip-green { fill: #dff5e6; stroke: #69a47a; stroke-width: 1; rx: 10; }
+      .chip-blue { fill: #e4f0ff; stroke: #6b91c2; stroke-width: 1; rx: 10; }
+      .chip-yellow { fill: #fff5cf; stroke: #c59a2d; stroke-width: 1; rx: 10; }
+      .chip-red { fill: #ffe5e5; stroke: #c56a6a; stroke-width: 1; rx: 10; }
+      .grid-line { stroke: #e2e8f0; stroke-width: 1; }
+      .text-white { font: 15px Arial, sans-serif; fill: #f8fafc; }
+      .title-white { font: 700 18px Arial, sans-serif; fill: #ffffff; }
+      .h1 { font: 700 26px Arial, sans-serif; fill: #172033; }
+      .h2 { font: 700 18px Arial, sans-serif; fill: #172033; }
+      .label { font: 14px Arial, sans-serif; fill: #263447; }
+      .small { font: 12.5px Arial, sans-serif; fill: #607086; }
+      .tiny { font: 11.5px Arial, sans-serif; fill: #64748b; }
+      .table-head { font: 700 12px Arial, sans-serif; fill: #475569; }
+      .table-text { font: 12.5px Arial, sans-serif; fill: #172033; }
+      .mono { font: 12px Menlo, Consolas, monospace; fill: #334155; }
+      .muted { fill: #94a3b8; }
+      .accent-line { stroke: #3d6ea8; stroke-width: 3; }
+      .callout { fill: #fff9e8; stroke: #d6a53a; stroke-width: 1.3; rx: 8; }
+    </style>
+  </defs>
+
+  <rect class="page" x="0" y="0" width="1440" height="980"/>
+  <rect class="window" x="44" y="42" width="1352" height="896"/>
+  <rect class="topbar" x="44" y="42" width="1352" height="64" rx="12"/>
+  <rect class="topbar" x="44" y="84" width="1352" height="22"/>
+  <text class="title-white" x="72" y="82">OpenStack Horizon</text>
+  <text class="text-white" x="1240" y="82">admin</text>
+  <circle cx="1216" cy="76" r="13" fill="#e8f2ff"/>
+  <path d="M 1210 77 L 1215 82 L 1223 70" stroke="#306da8" stroke-width="2.4" fill="none"/>
+
+  <rect class="sidebar" x="44" y="106" width="230" height="832"/>
+  <text class="text-white" x="70" y="150">Project</text>
+  <rect class="side-item" x="64" y="176" width="176" height="38"/>
+  <text class="text-white" x="82" y="201">Compute</text>
+  <rect class="side-active" x="64" y="226" width="176" height="38"/>
+  <text class="text-white" x="82" y="251">Optimization</text>
+  <rect class="side-item" x="84" y="278" width="156" height="34"/>
+  <text class="text-white" x="102" y="300">Audits</text>
+  <rect class="side-item" x="84" y="320" width="156" height="34"/>
+  <text class="text-white" x="102" y="342">Action Plans</text>
+  <rect class="side-item" x="84" y="362" width="156" height="34"/>
+  <text class="text-white" x="102" y="384">Data Model</text>
+  <rect class="side-item" x="84" y="404" width="156" height="34"/>
+  <text class="text-white" x="102" y="426">Services</text>
+
+  <text class="h1" x="310" y="152">Watcher Operations</text>
+  <text class="small" x="310" y="177">Horizon plugin view backed by microversioned Watcher API contracts</text>
+
+  <rect class="panel" x="310" y="202" width="1034" height="70"/>
+  <text class="h2" x="334" y="232">Backend capabilities</text>
+  <rect class="chip-green" x="334" y="246" width="104" height="22"/>
+  <text class="tiny" x="349" y="261">API 1.8</text>
+  <rect class="chip-blue" x="452" y="246" width="138" height="22"/>
+  <text class="tiny" x="468" y="261">state filter</text>
+  <rect class="chip-blue" x="604" y="246" width="178" height="22"/>
+  <text class="tiny" x="620" y="261">audit_template_uuid</text>
+  <rect class="chip-blue" x="796" y="246" width="128" height="22"/>
+  <text class="tiny" x="812" y="261">cancel endpoint</text>
+  <rect class="chip-blue" x="938" y="246" width="146" height="22"/>
+  <text class="tiny" x="954" y="261">JSON data model</text>
+  <text class="small" x="1110" y="260">Unsupported flags stay disabled</text>
+
+  <rect class="panel" x="310" y="300" width="680" height="350"/>
+  <text class="h2" x="334" y="331">Audits</text>
+  <text class="small" x="334" y="354">Server-side filtering before pagination</text>
+  <rect class="input" x="334" y="376" width="128" height="34"/>
+  <text class="tiny" x="346" y="397">State: PENDING</text>
+  <rect class="input" x="474" y="376" width="216" height="34"/>
+  <text class="tiny" x="486" y="397">Audit template: nightly-cpu</text>
+  <rect class="button" x="704" y="376" width="86" height="34"/>
+  <text class="text-white" x="726" y="398">Apply</text>
+  <rect class="button-muted" x="802" y="376" width="96" height="34"/>
+  <text class="label" x="822" y="398">Reset</text>
+
+  <line class="grid-line" x1="334" y1="432" x2="962" y2="432"/>
+  <text class="table-head" x="344" y="456">Name</text>
+  <text class="table-head" x="488" y="456">State</text>
+  <text class="table-head" x="602" y="456">Template</text>
+  <text class="table-head" x="782" y="456">Strategy</text>
+  <text class="table-head" x="894" y="456">Actions</text>
+  <line class="grid-line" x1="334" y1="468" x2="962" y2="468"/>
+
+  <text class="table-text" x="344" y="494">audit-cpu-001</text>
+  <rect class="chip-yellow" x="488" y="477" width="84" height="22"/>
+  <text class="tiny" x="505" y="492">PENDING</text>
+  <text class="table-text" x="602" y="494">nightly-cpu</text>
+  <text class="table-text" x="782" y="494">workload_balance</text>
+  <text class="small" x="894" y="494">Details</text>
+  <line class="grid-line" x1="334" y1="512" x2="962" y2="512"/>
+
+  <text class="table-text" x="344" y="538">audit-cpu-002</text>
+  <rect class="chip-blue" x="488" y="521" width="92" height="22"/>
+  <text class="tiny" x="505" y="536">ONGOING</text>
+  <text class="table-text" x="602" y="538">nightly-cpu</text>
+  <text class="table-text" x="782" y="538">basic_consolidation</text>
+  <text class="small" x="894" y="538">Plans</text>
+  <line class="grid-line" x1="334" y1="556" x2="962" y2="556"/>
+
+  <text class="table-text" x="344" y="582">audit-cpu-003</text>
+  <rect class="chip-green" x="488" y="565" width="96" height="22"/>
+  <text class="tiny" x="503" y="580">SUCCEEDED</text>
+  <text class="table-text" x="602" y="582">nightly-cpu</text>
+  <text class="table-text" x="782" y="582">workload_balance</text>
+  <text class="small" x="894" y="582">Details</text>
+
+  <rect class="callout" x="334" y="606" width="600" height="30"/>
+  <text class="tiny" x="350" y="626">UI convenience: no client-side audit filtering; backend keeps filters in pagination links.</text>
+
+  <rect class="panel" x="1014" y="300" width="330" height="350"/>
+  <text class="h2" x="1038" y="331">Action Plan</text>
+  <text class="small" x="1038" y="354">Selected from audit-cpu-002</text>
+  <rect class="soft" x="1038" y="378" width="282" height="92"/>
+  <text class="label" x="1058" y="407">State</text>
+  <rect class="chip-blue" x="1114" y="391" width="94" height="22"/>
+  <text class="tiny" x="1131" y="406">ONGOING</text>
+  <text class="small" x="1058" y="435">Strategy: basic_consolidation</text>
+  <text class="small" x="1058" y="456">Actions: 8</text>
+  <rect class="button" x="1038" y="494" width="112" height="38"/>
+  <text class="text-white" x="1075" y="518">Start</text>
+  <rect class="button-red" x="1166" y="494" width="112" height="38"/>
+  <text class="text-white" x="1204" y="518">Cancel</text>
+  <rect class="callout" x="1038" y="560" width="282" height="58"/>
+  <text class="tiny" x="1054" y="582">API 1.5+: POST /action_plans/{uuid}/cancel</text>
+  <text class="tiny" x="1054" y="604">Fallback: legacy PATCH transition</text>
+
+  <rect class="panel" x="310" y="680" width="1034" height="218"/>
+  <text class="h2" x="334" y="713">Data Model</text>
+  <text class="small" x="334" y="736">Compact table by default; XML detail for raw view; JSON detail for structured UI</text>
+  <rect class="button-muted" x="334" y="758" width="96" height="30"/>
+  <text class="label" x="356" y="778">Compact</text>
+  <rect class="button-muted" x="442" y="758" width="86" height="30"/>
+  <text class="label" x="469" y="778">XML</text>
+  <rect class="button" x="540" y="758" width="86" height="30"/>
+  <text class="text-white" x="566" y="778">JSON</text>
+  <text class="tiny" x="646" y="778">Requires API 1.8 and detail=true&amp;detail_format=json</text>
+
+  <rect class="soft" x="334" y="808" width="300" height="66"/>
+  <text class="label" x="354" y="834">Compute nodes</text>
+  <text class="small" x="354" y="856">host-01, host-02, host-03</text>
+  <rect class="soft" x="656" y="808" width="300" height="66"/>
+  <text class="label" x="676" y="834">Instances</text>
+  <text class="small" x="676" y="856">mapped by compute node</text>
+  <rect class="soft" x="978" y="808" width="300" height="66"/>
+  <text class="label" x="998" y="834">Unmapped instances</text>
+  <text class="small" x="998" y="856">empty state if context == []</text>
+
+  <line class="accent-line" x1="310" y1="662" x2="1344" y2="662"/>
+  <text class="tiny" x="310" y="924">Mockup purpose: show how backend API contracts translate into Horizon screens. It is not a final visual design for the plugin.</text>
+</svg>

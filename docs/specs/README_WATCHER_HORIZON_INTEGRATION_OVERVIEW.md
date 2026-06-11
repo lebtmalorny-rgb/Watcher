@@ -14,6 +14,10 @@ Horizon Watcher plugin: какие задачи UI они закрывают, к
 
 ![Watcher Horizon integration flow](images/watcher_horizon_integration_flow.svg)
 
+Пример того, как эти backend-возможности могут лечь на будущий Horizon UI:
+
+![Watcher Horizon UI mockup](images/watcher_horizon_ui_mockup.svg)
+
 ## Главная цель
 
 Цель доработок - подготовить Watcher backend под OpenStack Epoxy / 2025.1 так,
