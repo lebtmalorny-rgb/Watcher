@@ -284,13 +284,9 @@ Already present:
 - JSON PATCH for audit state.
 - State transition validation through `AuditStateTransitionManager`.
 - `updated_at` assertions in patch tests.
+- JSON PATCH rename through `/name`, including `updated_at` assertion.
 
-Coverage gap:
-
-- Add an explicit rename test for `/name`, because Horizon wrappers will likely
-  expose rename as a simple action.
-
-Suggested test:
+Implemented regression test:
 
 ```text
 test_replace_name_ok
@@ -352,7 +348,14 @@ GET /v1/data_model?data_model_type=compute
 GET /v1/data_model?data_model_type=compute&audit_uuid=<uuid>
 ```
 
-Useful tests to add:
+Verified on this branch:
+
+- default `compute` behavior when `data_model_type` is omitted.
+- explicit `data_model_type=compute`.
+- `audit_uuid` is passed through to the Decision Engine API.
+- invalid `data_model_type` returns `404 Not Found`.
+
+Implemented regression tests:
 
 ```text
 test_get_all_default_compute

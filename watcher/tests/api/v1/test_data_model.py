@@ -28,7 +28,8 @@ class TestListDataModel(api_base.FunctionalTest):
         super(TestListDataModel, self).setUp()
         p_dcapi = mock.patch.object(deapi, 'DecisionEngineAPI')
         self.mock_dcapi = p_dcapi.start()
-        self.mock_dcapi().get_data_model_info.return_value = \
+        self.mock_dcapi_client = self.mock_dcapi.return_value
+        self.mock_dcapi_client.get_data_model_info.return_value = \
             'fake_response_value'
         self.addCleanup(p_dcapi.stop)
 
@@ -37,6 +38,37 @@ class TestListDataModel(api_base.FunctionalTest):
             '/data_model/?data_model_type=compute',
             headers={'OpenStack-API-Version': 'infra-optim 1.3'})
         self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None)
+
+    def test_get_all_default_compute(self):
+        response = self.get_json(
+            '/data_model/',
+            headers={'OpenStack-API-Version': 'infra-optim 1.3'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None)
+
+    def test_get_all_with_audit_uuid(self):
+        audit_uuid = '5eac11d2-555f-4ba7-bef9-3b2edc94160f'
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&audit_uuid=%s' % audit_uuid,
+            headers={'OpenStack-API-Version': 'infra-optim 1.3'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', audit_uuid)
+
+    def test_get_all_invalid_data_model_type(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=storage',
+            headers={'OpenStack-API-Version': 'infra-optim 1.3'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.NOT_FOUND, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+        self.assertIn('storage data model could not be found',
+                      response.json['error_message'])
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
 
     def test_get_all_not_acceptable(self):
         response = self.get_json(
