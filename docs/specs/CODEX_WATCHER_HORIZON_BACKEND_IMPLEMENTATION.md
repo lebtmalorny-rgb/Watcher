@@ -253,6 +253,12 @@ Upgrade behavior:
   behavior сохранены;
 - action plan cancel остается PATCH-based.
 
+Планируемые публичные расширения API вынесены в отдельный P2 design document:
+
+```text
+docs/specs/CODEX_WATCHER_P2_API_EXTENSIONS.md
+```
+
 ## Контракт для Horizon plugin
 
 Рекомендуемые capability flags:
