@@ -132,7 +132,9 @@ r_audit_template_uuid:
     Optional audit template UUID used for filtering Audit collection results.
     The filter matches audits whose persisted ``audit_template_id`` points to
     the specified Audit Template. Audits created before this relationship was
-    stored, or audits created directly from a goal, do not match this filter.
+    stored, audits created directly from a goal, or audits whose template
+    reference was cleared after the source template was purged, do not match
+    this filter.
   in: query
   required: false
   type: string

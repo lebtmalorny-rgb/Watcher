@@ -21,7 +21,8 @@ def upgrade():
             'fk_audits_audit_template_id',
             'audit_templates',
             ['audit_template_id'],
-            ['id'])
+            ['id'],
+            ondelete='SET NULL')
 
 
 def downgrade():

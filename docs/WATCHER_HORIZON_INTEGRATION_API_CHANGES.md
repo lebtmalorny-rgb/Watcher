@@ -220,19 +220,22 @@ The `audit_template_uuid` filter adds a persisted audit-to-audit-template
 relationship for newly created template-backed audits:
 
 ```text
-audits.audit_template_id -> audit_templates.id
+audits.audit_template_id -> audit_templates.id ON DELETE SET NULL
 ```
 
 Data model integration details:
 
 - `watcher/db/sqlalchemy/models.py` adds nullable `Audit.audit_template_id`
   and an `Audit.audit_template` relationship.
-- Alembic revision `c2f4b8d6e3a1` adds the nullable column and foreign key.
+- Alembic revision `c2f4b8d6e3a1` adds the nullable column and foreign key
+  with `ON DELETE SET NULL`.
 - `watcher/objects/audit.py` adds nullable `audit_template_id` and bumps the
   Audit object version.
 - `watcher/api/controllers/v1/audit.py` stores the resolved template id when
   an audit is created with `audit_template_uuid`.
 - Historical audits are not backfilled.
+- If a source audit template is hard-deleted or purged, existing audits remain
+  and their `audit_template_id` is cleared by the database.
 - Audit response body fields are unchanged.
 
 Because the Audit response schema is unchanged, existing Watcher clients and
@@ -286,6 +289,8 @@ Integration notes:
   not match the filter unless their `audit_template_id` is populated later.
 - Audits created directly from `goal` have no audit template relationship and
   do not match the filter.
+- Audits whose source audit template has been purged keep their audit history,
+  but their cleared `audit_template_id` means they no longer match this filter.
 
 ## Files Changed
 

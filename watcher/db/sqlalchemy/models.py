@@ -171,7 +171,8 @@ class Audit(Base):
     interval = Column(String(36), nullable=True)
     goal_id = Column(Integer, ForeignKey('goals.id'), nullable=False)
     audit_template_id = Column(
-        Integer, ForeignKey('audit_templates.id'), nullable=True)
+        Integer, ForeignKey('audit_templates.id', ondelete='SET NULL'),
+        nullable=True)
     strategy_id = Column(Integer, ForeignKey('strategies.id'), nullable=True)
     scope = Column(JSONEncodedList, nullable=True)
     auto_trigger = Column(Boolean, nullable=False)

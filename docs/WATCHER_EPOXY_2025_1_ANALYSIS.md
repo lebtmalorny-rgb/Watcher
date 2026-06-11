@@ -222,6 +222,8 @@ Implemented on this branch:
 
 - `audits.audit_template_id` stores the source audit template for new audits
   created with `audit_template_uuid`.
+- The foreign key uses `ON DELETE SET NULL`: purging a source audit template
+  clears the audit reference instead of deleting or blocking existing audits.
 - `GET /v1/audits?audit_template_uuid=<uuid>` is a server-side filter.
 - `GET /v1/audits/detail?audit_template_uuid=<uuid>` is a server-side filter.
 - The response body shape is unchanged; `audit_template_uuid` is not returned
@@ -418,7 +420,8 @@ Add tests for existing behavior that Horizon depends on:
 Implemented the schema-changing audit-template filter after the lower-risk
 contract fixes:
 
-- nullable `audits.audit_template_id` migration and SQLAlchemy relationship;
+- nullable `audits.audit_template_id` migration and SQLAlchemy relationship
+  with `ON DELETE SET NULL`;
 - nullable `objects.Audit.audit_template_id` field and Audit object version
   bump;
 - DB filter support for `audit_template_uuid`;

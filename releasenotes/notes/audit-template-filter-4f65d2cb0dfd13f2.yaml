@@ -9,4 +9,6 @@ upgrade:
   - |
     Adds nullable column ``audits.audit_template_id``. Existing audits are not
     backfilled because previous releases did not persist the source audit
-    template on the audit row.
+    template on the audit row. The foreign key uses ``ON DELETE SET NULL`` so
+    purging an audit template clears the audit reference while preserving audit
+    history.

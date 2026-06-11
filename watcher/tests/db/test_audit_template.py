@@ -19,6 +19,7 @@ import freezegun
 
 from watcher.common import exception
 from watcher.common import utils as w_utils
+from watcher.db.sqlalchemy import models
 from watcher.tests.db import base
 from watcher.tests.db import utils
 
@@ -226,6 +227,12 @@ class TestDbAuditTemplateFilters(base.DbTestCase):
 
 
 class DbAuditTemplateTestCase(base.DbTestCase):
+
+    def test_audit_template_fk_clears_audit_reference_on_delete(self):
+        foreign_keys = list(models.Audit.audit_template_id.foreign_keys)
+
+        self.assertEqual(1, len(foreign_keys))
+        self.assertEqual('SET NULL', foreign_keys[0].ondelete)
 
     def test_get_audit_template_list(self):
         uuids = []
