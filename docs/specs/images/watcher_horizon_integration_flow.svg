@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">Watcher Horizon integration flow</title>
+  <desc id="desc">A diagram showing Horizon Watcher plugin screens, API microversion negotiation, Watcher backend capabilities, and safe fallbacks.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#375a7f"/>
+    </marker>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .title { font: 700 30px Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 16px Arial, sans-serif; fill: #475569; }
+      .section { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 8; }
+      .section-title { font: 700 18px Arial, sans-serif; fill: #0f172a; }
+      .box { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; rx: 6; }
+      .box-blue { fill: #e8f2ff; stroke: #4f7db8; stroke-width: 1.5; rx: 6; }
+      .box-green { fill: #eaf7ef; stroke: #4f9a69; stroke-width: 1.5; rx: 6; }
+      .box-yellow { fill: #fff7dd; stroke: #c7962d; stroke-width: 1.5; rx: 6; }
+      .box-red { fill: #fff0f0; stroke: #c76b6b; stroke-width: 1.5; rx: 6; }
+      .label { font: 15px Arial, sans-serif; fill: #1f2937; }
+      .small { font: 13px Arial, sans-serif; fill: #475569; }
+      .tiny { font: 12px Arial, sans-serif; fill: #64748b; }
+      .arrow { stroke: #375a7f; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .line { stroke: #94a3b8; stroke-width: 1.5; fill: none; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1280" height="760"/>
+  <text class="title" x="52" y="55">Watcher backend for Horizon plugin</text>
+  <text class="subtitle" x="52" y="82">Microversioned API contract, UI capabilities, and safe fallbacks for OpenStack Epoxy / 2025.1</text>
+
+  <rect class="section" x="40" y="120" width="360" height="500"/>
+  <text class="section-title" x="65" y="155">Horizon Watcher plugin UI</text>
+
+  <rect class="box-blue" x="65" y="180" width="310" height="86"/>
+  <text class="label" x="85" y="210">Audits view</text>
+  <text class="small" x="85" y="235">state filter, template filter</text>
+  <text class="tiny" x="85" y="254">source template shown as public UUID</text>
+
+  <rect class="box-blue" x="65" y="288" width="310" height="86"/>
+  <text class="label" x="85" y="318">Action plans view</text>
+  <text class="small" x="85" y="343">audit_uuid and strategy filters</text>
+  <text class="tiny" x="85" y="362">Start and Cancel row actions</text>
+
+  <rect class="box-blue" x="65" y="396" width="310" height="108"/>
+  <text class="label" x="85" y="426">Data model view</text>
+  <text class="small" x="85" y="451">compact table</text>
+  <text class="small" x="85" y="472">XML detail for raw serializer</text>
+  <text class="small" x="85" y="493">JSON detail for structured UI</text>
+
+  <rect class="box-yellow" x="65" y="526" width="310" height="64"/>
+  <text class="label" x="85" y="555">Safe UI behavior</text>
+  <text class="small" x="85" y="578">empty states, friendly errors, no hacks</text>
+
+  <rect class="section" x="460" y="120" width="360" height="500"/>
+  <text class="section-title" x="485" y="155">API negotiation and capabilities</text>
+
+  <rect class="box-green" x="485" y="180" width="310" height="70"/>
+  <text class="label" x="505" y="209">1. Version discovery</text>
+  <text class="small" x="505" y="233">OpenStack-API-Version: infra-optim</text>
+
+  <rect class="box-green" x="485" y="270" width="310" height="92"/>
+  <text class="label" x="505" y="299">2. Capability flags</text>
+  <text class="small" x="505" y="323">enable only supported backend features</text>
+  <text class="tiny" x="505" y="344">state, template, cancel, detail, JSON detail</text>
+
+  <rect class="box-green" x="485" y="382" width="310" height="98"/>
+  <text class="label" x="505" y="411">3. Microversion gates</text>
+  <text class="small" x="505" y="435">1.5 cancel endpoint</text>
+  <text class="small" x="505" y="456">1.6 audit_template_uuid response</text>
+  <text class="small" x="505" y="477">1.7 XML detail, 1.8 JSON detail</text>
+
+  <rect class="box-yellow" x="485" y="502" width="310" height="88"/>
+  <text class="label" x="505" y="531">Fallback rules</text>
+  <text class="small" x="505" y="555">do not send unsupported parameters</text>
+  <text class="small" x="505" y="576">context: [] means no data model</text>
+
+  <rect class="section" x="880" y="120" width="360" height="500"/>
+  <text class="section-title" x="905" y="155">Watcher backend contract</text>
+
+  <rect class="box" x="905" y="180" width="310" height="76"/>
+  <text class="label" x="925" y="209">Audits API</text>
+  <text class="small" x="925" y="233">server-side state and template filters</text>
+
+  <rect class="box" x="905" y="276" width="310" height="76"/>
+  <text class="label" x="925" y="305">Audit provenance</text>
+  <text class="small" x="925" y="329">audit_template_uuid without numeric ID leak</text>
+
+  <rect class="box" x="905" y="372" width="310" height="76"/>
+  <text class="label" x="925" y="401">Action plan cancel</text>
+  <text class="small" x="925" y="425">dedicated endpoint, same state machine</text>
+
+  <rect class="box" x="905" y="468" width="310" height="92"/>
+  <text class="label" x="925" y="497">Data model API</text>
+  <text class="small" x="925" y="521">compact list, XML detail, JSON detail</text>
+  <text class="tiny" x="925" y="542">JSON is opt-in and compute-only now</text>
+
+  <path class="arrow" d="M 400 250 C 430 250, 430 250, 460 250"/>
+  <path class="arrow" d="M 400 358 C 430 358, 430 358, 460 358"/>
+  <path class="arrow" d="M 400 462 C 430 462, 430 462, 460 462"/>
+  <path class="arrow" d="M 820 250 C 850 250, 850 250, 880 250"/>
+  <path class="arrow" d="M 820 358 C 850 358, 850 358, 880 358"/>
+  <path class="arrow" d="M 820 462 C 850 462, 850 462, 880 462"/>
+
+  <rect class="box-red" x="160" y="650" width="960" height="62"/>
+  <text class="label" x="185" y="679">Compatibility rule</text>
+  <text class="small" x="340" y="679">New UI behavior is enabled only after API/capability negotiation. Older clients keep existing responses.</text>
+  <text class="tiny" x="340" y="700">No automatic historical audit backfill, no storage/baremetal data model exposure, no Horizon plugin code in this backend branch.</text>
+</svg>
