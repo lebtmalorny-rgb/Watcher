@@ -26,7 +26,8 @@ class VERSIONS(enum.Enum):
     MINOR_5_ACTION_PLAN_CANCEL = 5  # v1.5: Add action plan cancel API
     MINOR_6_AUDIT_TEMPLATE_UUID = 6  # v1.6: Add audit template UUID response
     MINOR_7_DATA_MODEL_DETAIL = 7  # v1.7: Add data model detail API
-    MINOR_MAX_VERSION = 7
+    MINOR_8_DATA_MODEL_JSON_DETAIL = 8  # v1.8: Add data model JSON detail
+    MINOR_MAX_VERSION = 8
 
 
 # This is the version 1 API

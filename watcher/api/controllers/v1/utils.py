@@ -224,3 +224,12 @@ def allow_data_model_detail():
     """
     return pecan.request.version.minor >= (
         versions.VERSIONS.MINOR_7_DATA_MODEL_DETAIL.value)
+
+
+def allow_data_model_detail_format():
+    """Check if we should support the data model detail_format parameter.
+
+    Version 1.8 of the API added support for JSON detailed data model output.
+    """
+    return pecan.request.version.minor >= (
+        versions.VERSIONS.MINOR_8_DATA_MODEL_JSON_DETAIL.value)

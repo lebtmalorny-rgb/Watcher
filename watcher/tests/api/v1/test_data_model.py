@@ -74,10 +74,45 @@ class TestListDataModel(api_base.FunctionalTest):
         self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
             mock.ANY, 'compute', None, detail=False)
 
+    def test_get_all_with_detail_format_json(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true'
+            '&detail_format=json',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None, detail=True, detail_format='json')
+
+    def test_get_all_with_detail_format_xml(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true'
+            '&detail_format=xml',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None, detail=True, detail_format='xml')
+
+    def test_get_all_detail_true_1_8_without_format_keeps_default(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'})
+        self.assertEqual('fake_response_value', response)
+        self.mock_dcapi_client.get_data_model_info.assert_called_once_with(
+            mock.ANY, 'compute', None, detail=True)
+
     def test_get_all_with_detail_not_acceptable_before_1_7(self):
         response = self.get_json(
             '/data_model/?data_model_type=compute&detail=true',
             headers={'OpenStack-API-Version': 'infra-optim 1.6'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.NOT_ACCEPTABLE, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
+
+    def test_get_all_detail_format_not_acceptable_before_1_8(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true'
+            '&detail_format=json',
+            headers={'OpenStack-API-Version': 'infra-optim 1.7'},
             expect_errors=True)
         self.assertEqual(HTTPStatus.NOT_ACCEPTABLE, response.status_int)
         self.mock_dcapi_client.get_data_model_info.assert_not_called()
@@ -88,6 +123,41 @@ class TestListDataModel(api_base.FunctionalTest):
             headers={'OpenStack-API-Version': 'infra-optim 1.7'},
             expect_errors=True)
         self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
+
+    def test_get_all_invalid_detail_format(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=true'
+            '&detail_format=yaml',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
+
+    def test_get_all_detail_format_requires_detail_true(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail_format=json',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
+
+    def test_get_all_detail_format_rejects_detail_false(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=compute&detail=false'
+            '&detail_format=json',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.mock_dcapi_client.get_data_model_info.assert_not_called()
+
+    def test_get_all_detail_format_does_not_enable_storage_type(self):
+        response = self.get_json(
+            '/data_model/?data_model_type=storage&detail=true'
+            '&detail_format=json',
+            headers={'OpenStack-API-Version': 'infra-optim 1.8'},
+            expect_errors=True)
+        self.assertEqual(HTTPStatus.NOT_FOUND, response.status_int)
         self.mock_dcapi_client.get_data_model_info.assert_not_called()
 
     def test_get_all_invalid_data_model_type(self):
