@@ -155,6 +155,17 @@ r_data_model_detail:
   required: false
   type: boolean
   min_version: 1.7
+r_data_model_detail_format:
+  description: |
+    Optional detailed data model response format. Valid values are ``xml`` and
+    ``json``. This parameter requires ``detail=true``. When omitted with
+    ``detail=true``, the response keeps the XML detail format. The ``json``
+    format returns a stable JSON object in ``context`` when a data model is
+    available.
+  in: query
+  required: false
+  type: string
+  min_version: 1.8
 r_data_model_type:
   description: |
     Type of data model the user wants to list. Default type is ``compute``.
@@ -437,11 +448,15 @@ data_model_context:
   description: |
     Data model payload. For the compact response this is a list of flattened
     compute node and server mappings. Starting with API microversion 1.7,
-    when ``detail=true`` is requested, this field is an XML string produced by
-    the data model serializer.
+    when ``detail=true`` is requested without ``detail_format=json``, this
+    field is an XML string produced by the data model serializer. Starting
+    with API microversion 1.8, when ``detail=true&detail_format=json`` is
+    requested and a data model is available, this field is a stable JSON
+    detail object. If no scoped or latest data model is available, the
+    response keeps the existing empty list sentinel in ``context``.
   in: body
   required: true
-  type: array or string
+  type: array, string, or object
 deleted_at:
   description: |
     The date and time when the resource was deleted. The date and time

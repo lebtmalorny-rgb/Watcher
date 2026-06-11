@@ -254,6 +254,7 @@ WATCHER_BACKEND_SUPPORTS_AUDIT_STATE_FILTER = True
 WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = True
 WATCHER_BACKEND_EXPOSES_AUDIT_TEMPLATE_UUID = True  # API >= 1.6
 WATCHER_BACKEND_SUPPORTS_DATA_MODEL_DETAIL = True  # API >= 1.7
+WATCHER_BACKEND_SUPPORTS_DATA_MODEL_JSON_DETAIL = True  # API >= 1.8
 ```
 
 Recommended UI behavior:
@@ -270,8 +271,11 @@ Recommended UI behavior:
   was negotiated;
 - send `detail=true` to `GET /v1/data_model` only when API `>= 1.7` was
   negotiated;
-- handle detailed data model `context` as an XML string, not as a JSON object
-  schema;
+- request `detail_format=json` only when API `>= 1.8` was negotiated;
+- handle detailed data model `context` as an XML string when API is below
+  `1.8`, or when `detail_format=json` was not requested;
+- handle detailed data model `context` as a JSON object only for
+  `detail=true&detail_format=json` with API `>= 1.8`;
 - omit `force` for `CONTINUOUS` audit creation and expose it only where the UI
   creates immediate non-continuous audits under the existing microversion
   contract;
@@ -333,6 +337,50 @@ available_data_model.to_string()
 For the compute data model this means `context` is an XML string rooted at
 `<ModelRoot>`. This is not a new JSON Common Data Model schema.
 
+Starting with API microversion `1.8`, detailed data model output also accepts
+an optional `detail_format` query parameter:
+
+```http
+GET /v1/data_model?detail=true&detail_format=json
+OpenStack-API-Version: infra-optim 1.8
+```
+
+Compatibility contract:
+
+- API `1.7`: `detail=true` keeps XML string `context`;
+- API `1.8`: `detail=true` without `detail_format` keeps XML string
+  `context`;
+- API `1.8`: `detail=true&detail_format=xml` keeps XML string `context`;
+- API `1.8`: `detail=true&detail_format=json` returns JSON object
+  `context` when a scoped/latest data model is available;
+- if no scoped/latest data model is available, `context` remains the existing
+  empty list sentinel `[]`;
+- `detail_format` requires `detail=true`;
+- `detail_format` is unavailable before API `1.8`;
+- invalid `detail_format` values return `400 Bad Request`.
+
+The JSON detail envelope is:
+
+```json
+{
+  "context": {
+    "schema": "watcher.data_model.detail",
+    "schema_version": "1.0",
+    "model_type": "compute",
+    "stale": false,
+    "data": {
+      "compute_nodes": [],
+      "unmapped_instances": []
+    }
+  }
+}
+```
+
+Horizon should request `detail_format=json` only after negotiating API
+`>= 1.8`. The JSON schema is opt-in and does not replace the API `1.7` XML
+detailed behavior. Horizon should still handle `context: []` as an empty data
+model response for any detail format.
+
 ## Files Changed
 
 Code:
@@ -368,8 +416,10 @@ Documentation:
 api-ref/source/parameters.yaml
 api-ref/source/watcher-api-v1-audits.inc
 api-ref/source/watcher-api-v1-datamodel.inc
+api-ref/source/samples/datamodel-list-json-detail-response.json
 docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
 releasenotes/notes/audit-state-query-filter-2ad0c3df0af66f13.yaml
 releasenotes/notes/audit-template-filter-4f65d2cb0dfd13f2.yaml
 releasenotes/notes/data-model-detail-api-7d2e4a1f9c0b6e53.yaml
+releasenotes/notes/data-model-json-detail-api-8c1d2e3f4a5b6c7d.yaml
 ```

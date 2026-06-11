@@ -34,10 +34,13 @@ microversions:
 - `1.5`: dedicated cancel endpoint для action plans;
 - `1.6`: `audit_template_uuid` в audit response body;
 - `1.7`: `detail=true` для `GET /v1/data_model`.
+- `1.8`: `detail_format=json` для `GET /v1/data_model`.
 
 Для `GET /v1/data_model?detail=true` целевой backend-контракт в `1.7` - raw
 XML-строка в поле `context`, полученная через стабильный serializer data
-model. Compact response без `detail` не меняется.
+model. В `1.8` `detail=true&detail_format=json` является optional JSON
+detail format для будущих Horizon views. Compact response без `detail` не
+меняется, а `detail=true` без `detail_format=json` сохраняет XML behavior.
 
 Главное правило для всей работы: улучшать backend-контракт для Horizon, но не
 ломать существующий Watcher API.

@@ -219,6 +219,7 @@ GET /v1/data_model
 GET /v1/data_model?data_model_type=compute
 GET /v1/data_model?data_model_type=compute&audit_uuid=<AUDIT_UUID>
 GET /v1/data_model?data_model_type=compute&detail=true
+GET /v1/data_model?data_model_type=compute&detail=true&detail_format=json
 ```
 
 Контракт для Horizon:
@@ -233,15 +234,26 @@ GET /v1/data_model?data_model_type=compute&detail=true
 - `detail=false`, `detail=False`, `detail=0` трактуются как `False`;
 - invalid boolean value, например `detail=yes`, возвращает
   `400 Bad Request`;
+- начиная с API `1.8` поддержан query parameter `detail_format`;
+- `detail_format` требует `detail=true`;
+- допустимые значения `detail_format`: `xml`, `json`;
+- `detail_format` недоступен до API `1.8` и возвращает
+  `406 Not Acceptable`;
 - при `detail=false` или без параметра response остается прежним:
   `context` содержит compact list из `available_data_model.to_list()`;
-- при `detail=true` response меняется только для microversion `1.7`:
-  `context` содержит XML string из `available_data_model.to_string()`.
+- при API `1.7` и `detail=true` response меняется на XML detail:
+  `context` содержит XML string из `available_data_model.to_string()`;
+- при API `1.8` и `detail=true` без `detail_format` сохраняется XML detail;
+- при API `1.8` и `detail=true&detail_format=xml` сохраняется XML detail;
+- при API `1.8` и `detail=true&detail_format=json` `context` содержит
+  stable JSON detail object, если data model доступна;
+- если scoped/latest data model недоступна, `context` сохраняет существующий
+  empty-list sentinel `[]`.
 
-Важно для Horizon plugin: `detail=true` не вводит новую JSON-схему Common Data
-Model. Это raw XML-представление текущей модели. UI может показывать его как
-подробный/raw view или парсить XML на своей стороне, но не должен ожидать
-JSON object/array detail schema от backend.
+Важно для Horizon plugin: `detail=true` без `detail_format=json` не вводит
+новую JSON-схему Common Data Model. Это raw XML-представление текущей модели.
+JSON detail schema является opt-in в API `1.8` и не заменяет поведение
+`1.7`.
 
 Если OSC в конкретном окружении timeout-ится без type, это нужно проверять на
 стороне watcherclient/OSC path, а не менять REST contract без отдельного
@@ -317,8 +329,11 @@ Upgrade behavior:
 - dedicated action plan cancel endpoint добавлен только в microversion `1.5`.
 - data model `detail` добавлен только в microversion `1.7`; default
   `GET /v1/data_model` и compact response не изменены.
+- data model `detail_format` добавлен только в microversion `1.8`;
+  `detail=true` без `detail_format` и `detail_format=xml` сохраняют XML
+  detail behavior.
 
-Публичные расширения API по microversions `1.5` - `1.7` описаны в отдельном
+Публичные расширения API по microversions `1.5` - `1.8` описаны в отдельном
 P2 design document:
 
 ```text
@@ -334,6 +349,7 @@ WATCHER_BACKEND_SUPPORTS_AUDIT_STATE_FILTER = True
 WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = True
 WATCHER_BACKEND_EXPOSES_AUDIT_TEMPLATE_UUID = True  # API >= 1.6
 WATCHER_BACKEND_SUPPORTS_DATA_MODEL_DETAIL = True  # API >= 1.7
+WATCHER_BACKEND_SUPPORTS_DATA_MODEL_JSON_DETAIL = True  # API >= 1.8
 ```
 
 Horizon plugin должен:
@@ -345,7 +361,13 @@ Horizon plugin должен:
 - читать `audit_template_uuid` из audit response body только при API `>= 1.6`;
 - не пытаться читать `audit_template_id` из audit response body;
 - отправлять `detail=true` в data model API только при API `>= 1.7`;
-- обрабатывать `data_model.context` как XML string при `detail=true`;
+- отправлять `detail_format=json` только после negotiation API `>= 1.8`;
+- обрабатывать `data_model.context` как XML string при `detail=true`, если
+  API ниже `1.8` или `detail_format=json` не запрошен;
+- обрабатывать `data_model.context` как JSON object только для
+  `detail=true&detail_format=json` при API `>= 1.8` и наличии data model;
+- обрабатывать `data_model.context == []` как empty data model response для
+  любого detail format;
 - следовать backend-provided `next` links, не пересобирать pagination URLs;
 - использовать `audit_uuid`, не `audit`, для action plan filtering;
 - не отправлять `force=True` для `CONTINUOUS` audits;
@@ -361,6 +383,7 @@ Horizon plugin должен:
 api-ref/source/parameters.yaml
 api-ref/source/watcher-api-v1-audits.inc
 api-ref/source/watcher-api-v1-datamodel.inc
+api-ref/source/samples/datamodel-list-json-detail-response.json
 docs/WATCHER_EPOXY_2025_1_ANALYSIS.md
 docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
 releasenotes/notes/audit-state-query-filter-2ad0c3df0af66f13.yaml
@@ -369,6 +392,7 @@ releasenotes/notes/audit-template-filter-4f65d2cb0dfd13f2.yaml
 releasenotes/notes/action-plan-dedicated-cancel-endpoint-3f7c9a8b1d2e4f60.yaml
 releasenotes/notes/audit-template-uuid-response-6a1f9c2e4d8b7a30.yaml
 releasenotes/notes/data-model-detail-api-7d2e4a1f9c0b6e53.yaml
+releasenotes/notes/data-model-json-detail-api-8c1d2e3f4a5b6c7d.yaml
 ```
 
 Основной подробный API contract для будущего Horizon plugin:

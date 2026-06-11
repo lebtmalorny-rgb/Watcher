@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds REST API microversion 1.8 with ``detail_format=json`` for
+    ``GET /v1/data_model`` detailed responses. The new format requires
+    ``detail=true`` and returns a stable JSON object in ``context`` when a
+    data model is available. Existing compact responses, empty data model
+    responses, and the API 1.7 XML detail behavior are unchanged.

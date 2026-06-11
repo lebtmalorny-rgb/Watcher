@@ -25,6 +25,7 @@ Watcher plugin, но не ломают существующий Watcher API Epox
 1.5 - dedicated cancel endpoint для action plans
 1.6 - audit_template_uuid в audit response body
 1.7 - detail flag для GET /v1/data_model
+1.8 - detail_format=json для GET /v1/data_model
 ```
 
 ## P2.1: Dedicated cancel endpoint для action plans
@@ -210,9 +211,10 @@ DataModelEndpoint.get_data_model_info(..., detail=False)
 `available_data_model.to_string()`. Для compute data model это XML-строка вида
 `<ModelRoot>...</ModelRoot>`.
 
-Важно: это не новый JSON detail schema. Horizon plugin должен трактовать
-`context` как строку с XML при `detail=true`, либо показывать ее как raw/detail
-view до появления отдельной согласованной JSON-схемы.
+Важно для API `1.7` и для запросов без `detail_format=json`: это не новый JSON
+detail schema. Horizon plugin должен трактовать `context` как строку с XML при
+`detail=true`, либо показывать ее как raw/detail view. Отдельная JSON-схема
+добавлена только как opt-in поведение в API `1.8`.
 
 ### Validation
 
@@ -236,6 +238,111 @@ view до появления отдельной согласованной JSON-
 - invalid boolean возвращает `400`;
 - invalid `data_model_type` продолжает возвращать `404`;
 - `audit_uuid` продолжает передаваться в Decision Engine API.
+
+## P2.4: JSON detail format для Data Model API
+
+Статус реализации: реализовано в backend API microversion `1.8`.
+
+### Новый query parameter
+
+```http
+GET /v1/data_model?detail=true&detail_format=json
+OpenStack-API-Version: infra-optim 1.8
+```
+
+Параметр `detail_format` доступен только начиная с microversion `1.8` и
+имеет смысл только вместе с `detail=true`.
+
+Совместимый контракт:
+
+```http
+GET /v1/data_model?detail=true
+OpenStack-API-Version: infra-optim 1.7
+```
+
+возвращает XML string в `context`, как описано в P2.3.
+
+```http
+GET /v1/data_model?detail=true
+OpenStack-API-Version: infra-optim 1.8
+
+GET /v1/data_model?detail=true&detail_format=xml
+OpenStack-API-Version: infra-optim 1.8
+```
+
+также возвращают XML string в `context`.
+
+Только opt-in запрос:
+
+```http
+GET /v1/data_model?detail=true&detail_format=json
+OpenStack-API-Version: infra-optim 1.8
+```
+
+возвращает JSON object в `context`, если scoped/latest data model доступна.
+Если модель недоступна, backend сохраняет существующий empty-list sentinel:
+`{"context": []}`.
+
+### Validation
+
+Контракт параметров:
+
+- `detail_format` требует `detail=true`;
+- допустимые значения `detail_format`: `xml`, `json`;
+- отсутствие `detail_format` при `detail=true` сохраняет XML detail format;
+- `detail_format=xml` при `detail=true` сохраняет XML detail format;
+- `detail_format=json` при `detail=true` включает JSON detail format;
+- `detail_format` недоступен до microversion `1.8`;
+- invalid `detail_format` возвращает `400 Bad Request`;
+- `detail_format` без `detail=true` возвращает validation error.
+
+### Response shape
+
+JSON detail response сохраняет существующий REST envelope:
+
+```json
+{
+  "context": {
+    "schema": "watcher.data_model.detail",
+    "schema_version": "1.0",
+    "model_type": "compute",
+    "stale": false,
+    "data": {
+      "compute_nodes": [],
+      "unmapped_instances": []
+    }
+  }
+}
+```
+
+`context` является объектом только для `detail=true&detail_format=json` при
+API `>= 1.8` и наличии data model. Compact response без `detail` остается
+list. XML detail response остается string. Empty model response для всех
+форматов сохраняет существующий sentinel `[]`.
+
+Схема JSON detail является opt-in и future-safe: поле `schema` и
+`schema_version` фиксируют контракт формата, а новые необязательные поля могут
+добавляться в будущих версиях без замены поведения `1.7` XML detail.
+
+### Implementation and tests
+
+Основные backend-файлы реализации:
+
+```text
+watcher/api/controllers/v1/data_model.py
+watcher/api/controllers/v1/versions.py
+watcher/decision_engine/rpcapi.py
+watcher/decision_engine/messaging/data_model_endpoint.py
+```
+
+Минимальное покрытие:
+
+- API `1.7`: `detail=true` возвращает XML string в `context`;
+- API `1.8`: `detail=true` без `detail_format` возвращает XML string;
+- API `1.8`: `detail=true&detail_format=xml` возвращает XML string;
+- API `1.8`: `detail=true&detail_format=json` возвращает JSON object;
+- `detail_format` требует `detail=true`;
+- `detail_format` недоступен до API `1.8`.
 
 ## Backfill historical audits
 
@@ -274,6 +381,8 @@ watcher-db-manage audit-template-backfill --apply
 4. Добавить api-ref/releasenote/tests для audit template UUID response.
 5. Проверить наличие стабильного detailed serializer для data model.
 6. Добавить microversion `1.7` и `detail` flag.
+7. Добавить microversion `1.8` и `detail_format=json`.
+8. Добавить api-ref/releasenote/tests для JSON detail format.
 
 ## Verification matrix
 
@@ -306,5 +415,8 @@ releasenotes build, если добавляются release notes
 - audit list/detail может читать `audit_template_uuid` только при API `>= 1.6`;
 - data model detailed view может включать `detail=true` только при API
   `>= 1.7`;
+- data model JSON detail view может добавлять `detail_format=json` только при
+  API `>= 1.8`;
 - для старых endpoints Horizon должен сохранять fallback:
-  PATCH cancel, отсутствие `audit_template_uuid`, compact data model.
+  PATCH cancel, отсутствие `audit_template_uuid`, compact data model или XML
+  data model detail.

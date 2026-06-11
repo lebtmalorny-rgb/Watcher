@@ -65,3 +65,14 @@ Added the optional ``detail`` query parameter to the Data Model API::
 When ``detail`` is omitted or false, the API keeps the existing compact
 ``context`` list response. When ``detail`` is true, ``context`` contains the
 stable XML representation produced by the data model serializer.
+
+1.8
+---
+Added the optional ``detail_format`` query parameter to the Data Model API::
+
+  GET /v1/data_model?detail=true&detail_format=json
+
+When ``detail_format=json`` is requested with ``detail=true`` and a data model
+is available, ``context`` contains the stable JSON data model detail object.
+Omitting ``detail_format`` or requesting ``detail_format=xml`` keeps the
+existing XML detail behavior.

@@ -16,6 +16,14 @@ API.
    response is unchanged. When ``detail=true`` is requested, the ``context``
    response field contains the stable XML representation of the data model.
 
+.. versionchanged:: 1.8
+
+   Added the optional ``detail_format`` query parameter for detailed data model
+   responses. When ``detail=true&detail_format=json`` is requested and a data
+   model is available, the ``context`` response field contains the stable JSON
+   detail object. Omitting ``detail_format`` or requesting
+   ``detail_format=xml`` keeps the existing XML detail behavior.
+
 
 List Data Model
 ===============
@@ -36,6 +44,7 @@ Request
    - data_model_type: r_data_model_type
    - audit_uuid: r_audit_uuid
    - detail: r_data_model_detail
+   - detail_format: r_data_model_detail_format
 
 Response
 --------
@@ -64,7 +73,12 @@ Response
 .. literalinclude:: samples/datamodel-list-response.json
    :language: javascript
 
-**Example JSON representation of a detailed Data Model:**
+**Example JSON representation of an XML detailed Data Model:**
 
 .. literalinclude:: samples/datamodel-list-detail-response.json
+   :language: javascript
+
+**Example JSON representation of a JSON detailed Data Model:**
+
+.. literalinclude:: samples/datamodel-list-json-detail-response.json
    :language: javascript
