@@ -660,10 +660,23 @@ class Connection(api.BaseConnection):
         return self._get_audit_template(
             context, fieldname="name", value=audit_template_name, eager=eager)
 
+    @oslo_db_api.retry_on_deadlock
     def destroy_audit_template(self, audit_template_id):
         try:
-            return self._destroy(models.AuditTemplate, audit_template_id)
+            with _session_for_write() as session:
+                query = session.query(models.AuditTemplate)
+                query = add_identity_filter(query, audit_template_id)
+
+                audit_template = query.one()
+                session.query(models.Audit).filter_by(
+                    audit_template_id=audit_template.id).update(
+                        {'audit_template_id': None},
+                        synchronize_session=False)
+                query.delete()
         except exception.ResourceNotFound:
+            raise exception.AuditTemplateNotFound(
+                audit_template=audit_template_id)
+        except exc.NoResultFound:
             raise exception.AuditTemplateNotFound(
                 audit_template=audit_template_id)
 

@@ -345,6 +345,7 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertEqual(1, len(response['audits']))
         self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
         self.assertNotIn('audit_template_uuid', response['audits'][0])
+        self.assertNotIn('audit_template_id', response['audits'][0])
 
     def test_detail_with_audit_template_filter(self):
         audit_template = obj_utils.create_test_audit_template(
@@ -368,6 +369,7 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertEqual(1, len(response['audits']))
         self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
         self.assertNotIn('audit_template_uuid', response['audits'][0])
+        self.assertNotIn('audit_template_id', response['audits'][0])
 
     def test_many_with_audit_template_goal_strategy_and_state_filter(self):
         goal = obj_utils.create_test_goal(
@@ -416,6 +418,7 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertEqual(1, len(response['audits']))
         self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
         self.assertNotIn('audit_template_uuid', response['audits'][0])
+        self.assertNotIn('audit_template_id', response['audits'][0])
 
     def test_many_with_audit_template_filter_and_limit_keeps_next_filter(self):
         audit_template = obj_utils.create_test_audit_template(
@@ -446,6 +449,9 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertTrue(set(response_uuids).issubset(set(matching_uuids)))
         self.assertTrue(all(
             'audit_template_uuid' not in audit
+            for audit in response['audits']))
+        self.assertTrue(all(
+            'audit_template_id' not in audit
             for audit in response['audits']))
         self.assertIn('audit_template_uuid=%s' % audit_template.uuid,
                       response['next'])

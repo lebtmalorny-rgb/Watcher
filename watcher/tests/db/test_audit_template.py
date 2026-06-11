@@ -234,6 +234,22 @@ class DbAuditTemplateTestCase(base.DbTestCase):
         self.assertEqual(1, len(foreign_keys))
         self.assertEqual('SET NULL', foreign_keys[0].ondelete)
 
+    def test_destroy_audit_template_clears_audit_reference(self):
+        goal = utils.create_test_goal(
+            id=2, uuid=w_utils.generate_uuid(), name='TEMPLATE_GOAL')
+        audit_template = utils.create_test_audit_template(
+            id=2, uuid=w_utils.generate_uuid(), name='Template',
+            goal_id=goal.id)
+        audit = utils.create_test_audit(
+            id=2, uuid=w_utils.generate_uuid(), name='Template Audit',
+            goal_id=goal.id, audit_template_id=audit_template.id)
+
+        self.dbapi.destroy_audit_template(audit_template.id)
+
+        stored_audit = self.dbapi.get_audit_by_id(self.context, audit.id)
+        self.assertEqual(audit.uuid, stored_audit.uuid)
+        self.assertIsNone(stored_audit.audit_template_id)
+
     def test_get_audit_template_list(self):
         uuids = []
         for i in range(1, 4):
