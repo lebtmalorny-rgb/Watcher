@@ -383,9 +383,15 @@ class ActionPlansController(rest.RestController):
             marker_obj, sort_key=sort_db_key,
             sort_dir=sort_dir, filters=filters)
 
+        next_kwargs = {'sort_key': sort_key, 'sort_dir': sort_dir}
+        if audit_uuid:
+            next_kwargs['audit_uuid'] = audit_uuid
+        if strategy:
+            next_kwargs['strategy'] = strategy
+
         action_plans_collection = ActionPlanCollection.convert_with_links(
             action_plans, limit, url=resource_url, expand=expand,
-            sort_key=sort_key, sort_dir=sort_dir)
+            **next_kwargs)
 
         if need_api_sort:
             api_utils.make_api_sort(action_plans_collection.action_plans,

@@ -315,6 +315,40 @@ class DbActionPlanTestCase(base.DbTestCase):
         self.assertEqual([action_plan2['id']], [r.id for r in res])
         self.assertNotEqual([action_plan1['id']], [r.id for r in res])
 
+    def test_get_action_plan_list_with_audit_and_strategy_filters(self):
+        strategy = utils.create_test_strategy(
+            id=2, uuid=w_utils.generate_uuid(), name='strategy2')
+        other_strategy = utils.create_test_strategy(
+            id=3, uuid=w_utils.generate_uuid(), name='strategy3')
+        audit = utils.create_test_audit(
+            id=3, uuid=w_utils.generate_uuid(), audit_type='ONESHOT',
+            name='My Audit 3')
+        other_audit = utils.create_test_audit(
+            id=4, uuid=w_utils.generate_uuid(), audit_type='ONESHOT',
+            name='My Audit 4')
+
+        action_plan1 = utils.create_test_action_plan(
+            id=10, uuid=w_utils.generate_uuid(), audit_id=audit['id'],
+            strategy_id=strategy['id'])
+        action_plan2 = utils.create_test_action_plan(
+            id=11, uuid=w_utils.generate_uuid(), audit_id=audit['id'],
+            strategy_id=strategy['id'])
+        utils.create_test_action_plan(
+            id=12, uuid=w_utils.generate_uuid(), audit_id=other_audit['id'],
+            strategy_id=strategy['id'])
+        utils.create_test_action_plan(
+            id=13, uuid=w_utils.generate_uuid(), audit_id=audit['id'],
+            strategy_id=other_strategy['id'])
+
+        res = self.dbapi.get_action_plan_list(
+            self.context,
+            filters={'audit_uuid': audit['uuid'],
+                     'strategy_uuid': strategy['uuid']})
+
+        self.assertEqual(
+            sorted([action_plan1['id'], action_plan2['id']]),
+            sorted([r.id for r in res]))
+
     def test_get_action_plan_list_with_filter_by_uuid(self):
         action_plan = utils.create_test_action_plan()
         res = self.dbapi.get_action_plan_list(

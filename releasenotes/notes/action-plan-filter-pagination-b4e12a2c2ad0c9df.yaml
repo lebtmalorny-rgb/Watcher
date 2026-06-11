@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Action plan collection ``next`` links now preserve active ``audit_uuid``
+    and ``strategy`` filters. Combined action plan filters for ``audit_uuid``
+    and ``strategy`` are also correlated to the same action plan row.

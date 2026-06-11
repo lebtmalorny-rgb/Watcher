@@ -285,6 +285,41 @@ class TestListActionPlan(api_base.FunctionalTest):
         next_marker = response['action_plans'][-1]['uuid']
         self.assertIn(next_marker, response['next'])
 
+    def test_collection_links_keep_filters(self):
+        audit = obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='My Audit {0}'.format(2))
+        strategy = obj_utils.create_test_strategy(
+            self.context, id=2, uuid=utils.generate_uuid(), name='strategy2')
+        other_audit = obj_utils.create_test_audit(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='My Audit {0}'.format(3))
+
+        for id_ in range(2, 5):
+            obj_utils.create_test_action_plan(
+                self.context, id=id_, uuid=utils.generate_uuid(),
+                audit_id=audit.id, strategy_id=strategy.id)
+        obj_utils.create_test_action_plan(
+            self.context, id=5, uuid=utils.generate_uuid(),
+            audit_id=other_audit.id, strategy_id=strategy.id)
+        obj_utils.create_test_action_plan(
+            self.context, id=6, uuid=utils.generate_uuid(),
+            audit_id=audit.id, strategy_id=1)
+
+        response = self.get_json(
+            '/action_plans/?audit_uuid=%s&strategy=%s&limit=2' %
+            (audit.uuid, strategy.uuid))
+        self.assertEqual(2, len(response['action_plans']))
+        for action_plan in response['action_plans']:
+            self.assertEqual(audit.uuid, action_plan['audit_uuid'])
+            self.assertEqual(strategy.uuid, action_plan['strategy_uuid'])
+
+        next_marker = response['action_plans'][-1]['uuid']
+        self.assertIn('audit_uuid=%s' % audit.uuid, response['next'])
+        self.assertIn('strategy=%s' % strategy.uuid, response['next'])
+        self.assertIn('limit=2', response['next'])
+        self.assertIn(next_marker, response['next'])
+
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
         for id_ in range(5):

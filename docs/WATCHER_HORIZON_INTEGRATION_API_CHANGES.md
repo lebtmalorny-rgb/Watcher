@@ -174,6 +174,31 @@ clarifies and tests the behavior Horizon can rely on when creating audits:
 No API microversion, response body schema, database column, or Watcher object
 version changes are required for this create-path validation.
 
+### List action plans with preserved filters
+
+Endpoint:
+
+```http
+GET /v1/action_plans?audit_uuid=<AUDIT_UUID>&strategy=<STRATEGY_UUID_OR_NAME>
+```
+
+This patch keeps the existing action plan list query parameters and fixes their
+pagination behavior:
+
+- `audit_uuid` and `strategy` are applied together to the same action plan row;
+- filtered collection `next` links preserve `audit_uuid` and `strategy`;
+- Horizon should follow Watcher-provided `next` links instead of rebuilding
+  pagination URLs manually.
+
+Example first request:
+
+```http
+GET /v1/action_plans?audit_uuid=<AUDIT_UUID>&strategy=<STRATEGY_UUID>&limit=2
+```
+
+The returned `next` URL includes the same `audit_uuid` and `strategy` filters
+together with `limit` and `marker`.
+
 ## Data Model Changes
 
 There are no database schema changes for the `state` filter.
@@ -213,6 +238,9 @@ Recommended UI behavior:
 - use server-side `state` filtering for audit list views;
 - send only valid uppercase Watcher audit states;
 - follow Watcher-provided `next` links for pagination;
+- use `audit_uuid`, not `audit`, when filtering action plans by audit;
+- follow filtered action plan `next` links as-is so `audit_uuid` and
+  `strategy` filters remain active across pages;
 - omit `force` for `CONTINUOUS` audit creation and expose it only where the UI
   creates immediate non-continuous audits under the existing microversion
   contract;
@@ -256,7 +284,10 @@ Code:
 ```text
 watcher/api/controllers/v1/types.py
 watcher/api/controllers/v1/audit.py
+watcher/api/controllers/v1/action_plan.py
 watcher/tests/api/v1/test_audits.py
+watcher/tests/api/v1/test_actions_plans.py
+watcher/tests/db/test_action_plan.py
 ```
 
 Documentation:

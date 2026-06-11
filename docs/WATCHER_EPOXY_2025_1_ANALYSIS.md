@@ -318,11 +318,14 @@ Already covered:
 - pagination tests.
 - sort by `audit_uuid`.
 - PATCH transition tests, including cancel transitions.
+- `audit_uuid + strategy` combined filtering is correlated to the same action
+  plan row.
+- Filtered action plan `next` links preserve active `audit_uuid` and
+  `strategy` filters.
 
 Possible additional hardening:
 
 ```text
-test_actionplan_list_audit_uuid_with_limit_and_sort
 test_actionplan_cancel_pending_cancels_actions
 ```
 

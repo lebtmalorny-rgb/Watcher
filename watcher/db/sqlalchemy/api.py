@@ -398,18 +398,30 @@ class Connection(api.BaseConnection):
             filters = {}
 
         plain_fields = ['uuid', 'state', 'audit_id', 'strategy_id']
-        join_fieldmap = JoinMap(
-            audit_uuid=NaturalJoinFilter(
-                join_fieldname="uuid", join_model=models.Audit),
-            strategy_uuid=NaturalJoinFilter(
-                join_fieldname="uuid", join_model=models.Strategy),
-            strategy_name=NaturalJoinFilter(
-                join_fieldname="name", join_model=models.Strategy),
-        )
+        related_fieldmap = {
+            'audit_uuid': (models.ActionPlan.audit, models.Audit, "uuid"),
+            'strategy_uuid': (
+                models.ActionPlan.strategy, models.Strategy, "uuid"),
+            'strategy_name': (
+                models.ActionPlan.strategy, models.Strategy, "name"),
+        }
+        filters = filters.copy()
+
+        for raw_fieldname, value in list(filters.items()):
+            fieldname, operator_ = self.__decompose_filter(raw_fieldname)
+            if fieldname not in related_fieldmap:
+                continue
+
+            relationship, related_model, related_fieldname = (
+                related_fieldmap[fieldname])
+            related_field = getattr(related_model, related_fieldname)
+            query = query.filter(relationship.has(
+                self.valid_operators[operator_](related_field, value)))
+            filters.pop(raw_fieldname)
 
         return self._add_filters(
             query=query, model=models.ActionPlan, filters=filters,
-            plain_fields=plain_fields, join_fieldmap=join_fieldmap)
+            plain_fields=plain_fields)
 
     def _add_actions_filters(self, query, filters):
         if filters is None:
