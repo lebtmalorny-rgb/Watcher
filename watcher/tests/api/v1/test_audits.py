@@ -320,6 +320,138 @@ class TestListAudit(api_base.FunctionalTest):
         self.assertEqual(1, len(response['audits']))
         self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
 
+    def test_many_with_audit_template_filter(self):
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Template 2')
+        other_template = obj_utils.create_test_audit_template(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Template 3')
+
+        expected_audit = obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Template Audit', audit_template_id=audit_template.id)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Other Template Audit',
+            audit_template_id=other_template.id)
+        obj_utils.create_test_audit(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='No Template Audit')
+
+        response = self.get_json(
+            '/audits?audit_template_uuid=%s' % audit_template.uuid)
+
+        self.assertEqual(1, len(response['audits']))
+        self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
+        self.assertNotIn('audit_template_uuid', response['audits'][0])
+
+    def test_detail_with_audit_template_filter(self):
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Template 2')
+        other_template = obj_utils.create_test_audit_template(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Template 3')
+
+        expected_audit = obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Template Audit', audit_template_id=audit_template.id)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Other Template Audit',
+            audit_template_id=other_template.id)
+
+        response = self.get_json(
+            '/audits/detail?audit_template_uuid=%s' % audit_template.uuid)
+
+        self.assertEqual(1, len(response['audits']))
+        self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
+        self.assertNotIn('audit_template_uuid', response['audits'][0])
+
+    def test_many_with_audit_template_goal_strategy_and_state_filter(self):
+        goal = obj_utils.create_test_goal(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='TEST_GOAL_2')
+        strategy = obj_utils.create_test_strategy(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='TEST_STRATEGY_2', goal_id=goal.id)
+        other_strategy = obj_utils.create_test_strategy(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='TEST_STRATEGY_3', goal_id=goal.id)
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Template 2', goal_id=goal.id, strategy_id=strategy.id)
+        other_template = obj_utils.create_test_audit_template(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Template 3', goal_id=goal.id, strategy_id=strategy.id)
+
+        expected_audit = obj_utils.create_test_audit(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            name='Matching Audit', goal_id=goal.id, strategy_id=strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.PENDING)
+        obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Wrong State Audit', goal_id=goal.id,
+            strategy_id=strategy.id, audit_template_id=audit_template.id,
+            state=objects.audit.State.SUCCEEDED)
+        obj_utils.create_test_audit(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Wrong Strategy Audit', goal_id=goal.id,
+            strategy_id=other_strategy.id,
+            audit_template_id=audit_template.id,
+            state=objects.audit.State.PENDING)
+        obj_utils.create_test_audit(
+            self.context, id=4, uuid=utils.generate_uuid(),
+            name='Wrong Template Audit', goal_id=goal.id,
+            strategy_id=strategy.id, audit_template_id=other_template.id,
+            state=objects.audit.State.PENDING)
+
+        response = self.get_json(
+            '/audits?audit_template_uuid=%s&goal=%s&strategy=%s&state=%s' % (
+                audit_template.uuid, goal.uuid, strategy.uuid,
+                objects.audit.State.PENDING))
+
+        self.assertEqual(1, len(response['audits']))
+        self.assertEqual(expected_audit.uuid, response['audits'][0]['uuid'])
+        self.assertNotIn('audit_template_uuid', response['audits'][0])
+
+    def test_many_with_audit_template_filter_and_limit_keeps_next_filter(self):
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Template 2')
+        other_template = obj_utils.create_test_audit_template(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            name='Template 3')
+
+        matching_uuids = []
+        for id_ in (1, 3, 4):
+            audit = obj_utils.create_test_audit(
+                self.context, id=id_, uuid=utils.generate_uuid(),
+                name='Template Audit {0}'.format(id_),
+                audit_template_id=audit_template.id)
+            matching_uuids.append(audit.uuid)
+        other_audit = obj_utils.create_test_audit(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            name='Other Template Audit',
+            audit_template_id=other_template.id)
+
+        response = self.get_json(
+            '/audits?audit_template_uuid=%s&limit=2' % audit_template.uuid)
+
+        self.assertEqual(2, len(response['audits']))
+        response_uuids = [audit['uuid'] for audit in response['audits']]
+        self.assertNotIn(other_audit.uuid, response_uuids)
+        self.assertTrue(set(response_uuids).issubset(set(matching_uuids)))
+        self.assertTrue(all(
+            'audit_template_uuid' not in audit
+            for audit in response['audits']))
+        self.assertIn('audit_template_uuid=%s' % audit_template.uuid,
+                      response['next'])
+        self.assertIn('limit=2', response['next'])
+        self.assertIn(response['audits'][-1]['uuid'], response['next'])
+
     def test_many_with_invalid_state_filter(self):
         response = self.get_json('/audits?state=UNKNOWN',
                                  expect_errors=True)
@@ -1105,6 +1237,45 @@ class TestPost(api_base.FunctionalTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(HTTPStatus.CREATED, response.status_int)
         self.assertEqual({'fake1': 5.5}, response.json['parameters'])
+
+    @mock.patch.object(deapi.DecisionEngineAPI, 'trigger_audit')
+    def test_create_audit_with_audit_template_persists_relationship(
+            self, mock_trigger_audit):
+        mock_trigger_audit.return_value = mock.ANY
+        fake_spec = {
+            "properties": {
+                "fake1": {
+                    "description": "number parameter example",
+                    "type": "number",
+                    "minimum": 1.0,
+                    "maximum": 10.2,
+                }
+            },
+            'required': ['fake1']
+        }
+        strategy = obj_utils.create_test_strategy(
+            self.context, id=4, uuid=utils.generate_uuid(),
+            name='persist_strategy', parameters_spec=fake_spec)
+        audit_template = obj_utils.create_test_audit_template(
+            self.context, id=4, uuid=utils.generate_uuid(),
+            name='persist_template', strategy_id=strategy.id)
+
+        audit_dict = api_utils.audit_post_data(parameters={'fake1': 5.5})
+        audit_dict['audit_template_uuid'] = audit_template.uuid
+        del_keys = ['uuid', 'goal_id', 'strategy_id', 'state', 'interval',
+                    'scope', 'next_run_time', 'hostname',
+                    'audit_template_id', 'audit_template']
+        for k in del_keys:
+            del audit_dict[k]
+
+        response = self.post_json('/audits', audit_dict)
+
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(HTTPStatus.CREATED, response.status_int)
+        audit = objects.Audit.get_by_uuid(
+            self.context, response.json['uuid'])
+        self.assertEqual(audit_template.id, audit.audit_template_id)
+        self.assertNotIn('audit_template_uuid', response.json)
 
     def prepare_audit_template_strategy_with_parameter(self):
         fake_spec = {
