@@ -29,6 +29,34 @@ from watcher.decision_engine.model import element
 
 LOG = log.getLogger(__name__)
 
+DETAIL_SCHEMA = 'watcher.data_model.detail'
+DETAIL_SCHEMA_VERSION = '1.0'
+
+_COMPUTE_NODE_FIELDS = (
+    'uuid', 'hostname', 'state', 'status', 'disabled_reason')
+_COMPUTE_RESOURCE_FIELDS = (
+    'memory', 'memory_mb_reserved', 'memory_ratio',
+    'disk', 'disk_gb_reserved', 'disk_ratio',
+    'vcpus', 'vcpu_reserved', 'vcpu_ratio')
+_INSTANCE_FIELDS = (
+    'uuid', 'name', 'state', 'vcpus', 'memory', 'disk',
+    'watcher_exclude', 'project_id', 'locked', 'metadata')
+
+
+def _field_value(obj, field, default=None):
+    obj_attr_is_set = getattr(obj, 'obj_attr_is_set', None)
+    if obj_attr_is_set:
+        try:
+            if not obj_attr_is_set(field):
+                return default
+        except AttributeError:
+            return default
+
+    try:
+        return obj[field]
+    except (KeyError, AttributeError):
+        return default
+
 
 class ModelRoot(nx.DiGraph, base.Model):
     """Cluster graph for an Openstack cluster."""
@@ -218,6 +246,57 @@ class ModelRoot(nx.DiGraph, base.Model):
         disk_free = node.disk_gb_capacity-resources_used.get('disk')
 
         return dict(vcpu=vcpu_free, memory=memory_free, disk=disk_free)
+
+    def _instance_to_dict(self, instance):
+        return {
+            field: _field_value(instance, field)
+            for field in _INSTANCE_FIELDS
+        }
+
+    def _compute_node_to_dict(self, node):
+        node_data = {
+            field: _field_value(node, field)
+            for field in _COMPUTE_NODE_FIELDS
+        }
+        node_data['resources'] = {
+            field: _field_value(node, field)
+            for field in _COMPUTE_RESOURCE_FIELDS
+        }
+        node_data['instances'] = [
+            self._instance_to_dict(instance)
+            for instance in sorted(
+                self.get_node_instances(node),
+                key=lambda instance: instance.uuid)
+        ]
+        return node_data
+
+    def to_dict(self):
+        compute_nodes = [
+            self._compute_node_to_dict(node)
+            for node in sorted(
+                self.get_all_compute_nodes().values(),
+                key=lambda node: node.uuid)
+        ]
+
+        unmapped_instances = []
+        for instance in sorted(
+                self.get_all_instances().values(),
+                key=lambda instance: instance.uuid):
+            try:
+                self.get_node_by_instance_uuid(instance.uuid)
+            except exception.InstanceNotMapped:
+                unmapped_instances.append(self._instance_to_dict(instance))
+
+        return {
+            'schema': DETAIL_SCHEMA,
+            'schema_version': DETAIL_SCHEMA_VERSION,
+            'model_type': 'compute',
+            'stale': self.stale,
+            'data': {
+                'compute_nodes': compute_nodes,
+                'unmapped_instances': unmapped_instances,
+            },
+        }
 
     def to_string(self):
         return self.to_xml()

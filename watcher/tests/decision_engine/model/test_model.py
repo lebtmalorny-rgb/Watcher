@@ -42,6 +42,169 @@ class TestModel(base.TestCase):
     def load_model(self, filename):
         return model_root.ModelRoot.from_xml(self.load_data(filename))
 
+    def _make_compute_node(self, uuid, hostname):
+        return element.ComputeNode(
+            uuid=uuid,
+            hostname=hostname,
+            status='enabled',
+            disabled_reason=None,
+            state='up',
+            memory=65536,
+            memory_mb_reserved=1024,
+            disk=1000,
+            disk_gb_reserved=10,
+            vcpus=32,
+            vcpu_reserved=2,
+            memory_ratio=1.5,
+            vcpu_ratio=16.0,
+            disk_ratio=1.0)
+
+    def _make_instance(self, uuid, name, project_id):
+        return element.Instance(
+            uuid=uuid,
+            watcher_exclude=False,
+            name=name,
+            state='active',
+            memory=4096,
+            disk=40,
+            vcpus=2,
+            metadata={'role': 'api'},
+            project_id=project_id,
+            locked=False)
+
+    def test_model_to_dict_returns_compute_detail_payload(self):
+        model = model_root.ModelRoot()
+        node = self._make_compute_node('node-1', 'host1')
+        instance = self._make_instance(
+            'instance-1', 'vm1',
+            '11111111-1111-4111-8111-111111111111')
+        unmapped = self._make_instance(
+            'instance-2', 'vm2',
+            '22222222-2222-4222-8222-222222222222')
+
+        model.add_node(node)
+        model.add_instance(instance)
+        model.add_instance(unmapped)
+        model.map_instance(instance, node)
+
+        result = model.to_dict()
+
+        expected = {
+            'schema': 'watcher.data_model.detail',
+            'schema_version': '1.0',
+            'model_type': 'compute',
+            'stale': False,
+            'data': {
+                'compute_nodes': [{
+                    'uuid': 'node-1',
+                    'hostname': 'host1',
+                    'state': 'up',
+                    'status': 'enabled',
+                    'disabled_reason': None,
+                    'resources': {
+                        'memory': 65536,
+                        'memory_mb_reserved': 1024,
+                        'memory_ratio': 1.5,
+                        'disk': 1000,
+                        'disk_gb_reserved': 10,
+                        'disk_ratio': 1.0,
+                        'vcpus': 32,
+                        'vcpu_reserved': 2,
+                        'vcpu_ratio': 16.0,
+                    },
+                    'instances': [{
+                        'uuid': 'instance-1',
+                        'name': 'vm1',
+                        'state': 'active',
+                        'vcpus': 2,
+                        'memory': 4096,
+                        'disk': 40,
+                        'watcher_exclude': False,
+                        'project_id': '11111111-1111-4111-8111-111111111111',
+                        'locked': False,
+                        'metadata': {'role': 'api'},
+                    }],
+                }],
+                'unmapped_instances': [{
+                    'uuid': 'instance-2',
+                    'name': 'vm2',
+                    'state': 'active',
+                    'vcpus': 2,
+                    'memory': 4096,
+                    'disk': 40,
+                    'watcher_exclude': False,
+                    'project_id': '22222222-2222-4222-8222-222222222222',
+                    'locked': False,
+                    'metadata': {'role': 'api'},
+                }],
+            },
+        }
+        self.assertEqual(expected, result)
+
+    def test_model_to_dict_sorts_nodes_instances_and_unmapped_instances(self):
+        model = model_root.ModelRoot()
+        node_b = self._make_compute_node('node-b', 'host-b')
+        node_a = self._make_compute_node('node-a', 'host-a')
+        instance_b = self._make_instance(
+            'instance-b', 'vm-b',
+            '33333333-3333-4333-8333-333333333333')
+        instance_a = self._make_instance(
+            'instance-a', 'vm-a',
+            '44444444-4444-4444-8444-444444444444')
+        unmapped_b = self._make_instance(
+            'unmapped-b', 'vm-unmapped-b',
+            '55555555-5555-4555-8555-555555555555')
+        unmapped_a = self._make_instance(
+            'unmapped-a', 'vm-unmapped-a',
+            '66666666-6666-4666-8666-666666666666')
+
+        model.add_node(node_b)
+        model.add_node(node_a)
+        model.add_instance(instance_b)
+        model.add_instance(instance_a)
+        model.add_instance(unmapped_b)
+        model.add_instance(unmapped_a)
+        model.map_instance(instance_b, node_b)
+        model.map_instance(instance_a, node_b)
+
+        data = model.to_dict()['data']
+
+        self.assertEqual(
+            ['node-a', 'node-b'],
+            [node['uuid'] for node in data['compute_nodes']])
+        self.assertEqual(
+            ['instance-a', 'instance-b'],
+            [inst['uuid'] for inst in data['compute_nodes'][1]['instances']])
+        self.assertEqual(
+            ['unmapped-a', 'unmapped-b'],
+            [inst['uuid'] for inst in data['unmapped_instances']])
+
+    def test_model_to_dict_preserves_stale_flag(self):
+        result = model_root.ModelRoot(stale=True).to_dict()
+
+        self.assertIs(True, result['stale'])
+
+    def test_model_to_dict_serializes_empty_node_instances(self):
+        model = model_root.ModelRoot()
+        node = self._make_compute_node('node-1', 'host1')
+
+        model.add_node(node)
+
+        data = model.to_dict()['data']
+
+        self.assertEqual([], data['compute_nodes'][0]['instances'])
+
+    def test_field_value_does_not_swallow_unexpected_access_errors(self):
+        class BrokenObject(object):
+            def __getitem__(self, field):
+                raise RuntimeError("unexpected field access error")
+
+        self.assertRaises(
+            RuntimeError,
+            model_root._field_value,
+            BrokenObject(),
+            'uuid')
+
     def test_model_structure(self):
         fake_cluster = faker_cluster_state.FakerModelCollector()
         model1 = fake_cluster.build_scenario_1()
