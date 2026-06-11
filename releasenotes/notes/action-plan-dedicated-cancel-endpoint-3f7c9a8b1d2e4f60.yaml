@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds REST API microversion 1.5 with a dedicated
+    ``POST /v1/action_plans/{action_plan_uuid}/cancel`` endpoint. The new
+    endpoint keeps the existing action plan cancel transitions while allowing
+    clients to cancel an action plan without constructing a JSON Patch request.

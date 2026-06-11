@@ -447,6 +447,121 @@ class TestStart(api_base.FunctionalTest):
         self.assertEqual('application/json', act_response.content_type)
 
 
+class TestCancelActionPlan(api_base.FunctionalTest):
+
+    def setUp(self):
+        super(TestCancelActionPlan, self).setUp()
+        obj_utils.create_test_goal(self.context)
+        obj_utils.create_test_strategy(self.context)
+        obj_utils.create_test_audit(self.context)
+        p = mock.patch.object(db_api.BaseConnection, 'update_action_plan')
+        self.mock_action_plan_update = p.start()
+        self.mock_action_plan_update.side_effect = \
+            self._simulate_rpc_action_plan_update
+        self.addCleanup(p.stop)
+
+    def _simulate_rpc_action_plan_update(self, action_plan):
+        action_plan.save()
+        return action_plan
+
+    def _headers(self, version='1.5'):
+        return {'OpenStack-API-Version': 'infra-optim %s' % version}
+
+    def _post_cancel(self, action_plan_uuid, version='1.5',
+                     expect_errors=False):
+        return self.post(
+            '/v1/action_plans/%s/cancel' % action_plan_uuid,
+            headers=self._headers(version),
+            expect_errors=expect_errors)
+
+    def test_cancel_action_plan_not_available_before_microversion_1_5(self):
+        action_plan = obj_utils.create_test_action_plan(
+            self.context, state=objects.action_plan.State.PENDING)
+
+        response = self._post_cancel(
+            action_plan.uuid, version='1.4', expect_errors=True)
+
+        self.assertEqual(HTTPStatus.NOT_ACCEPTABLE, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_cancel_pending_action_plan_cancels_linked_actions(self):
+        action_plan = obj_utils.create_test_action_plan(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            state=objects.action_plan.State.PENDING)
+        linked_pending_action = obj_utils.create_test_action(
+            self.context, id=1, uuid=utils.generate_uuid(),
+            action_plan_id=action_plan.id,
+            state=objects.action.State.PENDING)
+        linked_ongoing_action = obj_utils.create_test_action(
+            self.context, id=2, uuid=utils.generate_uuid(),
+            action_plan_id=action_plan.id,
+            state=objects.action.State.ONGOING)
+        other_action_plan = obj_utils.create_test_action_plan(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            state=objects.action_plan.State.PENDING)
+        unrelated_action = obj_utils.create_test_action(
+            self.context, id=3, uuid=utils.generate_uuid(),
+            action_plan_id=other_action_plan.id,
+            state=objects.action.State.PENDING)
+
+        response = self._post_cancel(action_plan.uuid)
+
+        self.assertEqual(HTTPStatus.OK, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(objects.action_plan.State.CANCELLED,
+                         response.json['state'])
+
+        for action in (linked_pending_action, linked_ongoing_action):
+            action_response = self.get_json('/actions/%s' % action.uuid)
+            self.assertEqual(objects.action.State.CANCELLED,
+                             action_response['state'])
+
+        action_response = self.get_json('/actions/%s' % unrelated_action.uuid)
+        self.assertEqual(objects.action.State.PENDING,
+                         action_response['state'])
+
+    def test_cancel_recommended_action_plan(self):
+        action_plan = obj_utils.create_test_action_plan(
+            self.context, state=objects.action_plan.State.RECOMMENDED)
+
+        response = self._post_cancel(action_plan.uuid)
+
+        self.assertEqual(HTTPStatus.OK, response.status_int)
+        self.assertEqual(objects.action_plan.State.CANCELLED,
+                         response.json['state'])
+
+    def test_cancel_ongoing_action_plan_marks_cancelling(self):
+        action_plan = obj_utils.create_test_action_plan(
+            self.context, state=objects.action_plan.State.ONGOING)
+
+        response = self._post_cancel(action_plan.uuid)
+
+        self.assertEqual(HTTPStatus.OK, response.status_int)
+        self.assertEqual(objects.action_plan.State.CANCELLING,
+                         response.json['state'])
+
+    def test_cancel_action_plan_invalid_source_state_denied(self):
+        action_plan = obj_utils.create_test_action_plan(
+            self.context, state=objects.action_plan.State.SUCCEEDED)
+
+        response = self._post_cancel(action_plan.uuid, expect_errors=True)
+        updated_ap = self.get_json('/action_plans/%s' % action_plan.uuid)
+
+        self.assertEqual(HTTPStatus.BAD_REQUEST, response.status_int)
+        self.assertEqual(objects.action_plan.State.SUCCEEDED,
+                         updated_ap['state'])
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_cancel_action_plan_not_found(self):
+        response = self._post_cancel(utils.generate_uuid(), expect_errors=True)
+
+        self.assertEqual(HTTPStatus.NOT_FOUND, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+
 class TestPatch(api_base.FunctionalTest):
 
     def setUp(self):
@@ -751,6 +866,14 @@ class TestActionPlanPolicyEnforcement(api_base.FunctionalTest):
             "action_plan:delete", self.delete,
             '/action_plans/%s' % action_plan.uuid, expect_errors=True)
 
+    def test_policy_disallow_cancel(self):
+        action_plan = obj_utils.create_test_action_plan(self.context)
+        self._common_policy_check(
+            "action_plan:cancel", self.post,
+            '/v1/action_plans/%s/cancel' % action_plan.uuid,
+            headers={'OpenStack-API-Version': 'infra-optim 1.5'},
+            expect_errors=True)
+
 
 class TestActionPlanPolicyEnforcementWithAdminContext(TestListActionPlan,
                                                       api_base.AdminRoleTest):
@@ -765,4 +888,5 @@ class TestActionPlanPolicyEnforcementWithAdminContext(TestListActionPlan,
             "action_plan:get": "rule:default",
             "action_plan:get_all": "rule:default",
             "action_plan:update": "rule:default",
-            "action_plan:start": "rule:default"})
+            "action_plan:start": "rule:default",
+            "action_plan:cancel": "rule:default"})

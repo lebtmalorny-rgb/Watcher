@@ -57,6 +57,49 @@ version 1:
 .. literalinclude:: samples/actionplan-start-response.json
    :language: javascript
 
+Cancel Action Plan with dedicated endpoint
+==========================================
+
+.. rest_method::  POST /v1/action_plans/{actionplan_ident}/cancel
+
+Cancels a created Action Plan resource. This API is available starting with
+microversion 1.5.
+
+If the Action Plan is in ``ONGOING`` state, it is moved to ``CANCELLING``.
+If it is in ``RECOMMENDED`` or ``PENDING`` state, it is moved to
+``CANCELLED``.
+
+Normal response codes: 200
+
+Error codes: 400,404,406
+
+Request
+-------
+
+.. rest_parameters:: parameters.yaml
+
+   - actionplan_ident: actionplan_ident
+
+Response
+--------
+
+.. rest_parameters:: parameters.yaml
+
+    - uuid: uuid
+    - state: actionplan_state
+    - audit_uuid: actionplan_audit_uuid
+    - strategy_uuid: strategy_uuid
+    - strategy_name: strategy_name
+    - efficacy_indicators: actionplan_efficacy_indicators
+    - global_efficacy: actionplan_global_efficacy
+    - links: links
+    - hostname: actionplan_hostname
+
+**Example JSON representation of a cancelled Action Plan:**
+
+.. literalinclude:: samples/actionplan-cancel-response.json
+   :language: javascript
+
 List Action Plan
 ================
 

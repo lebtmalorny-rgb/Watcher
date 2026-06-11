@@ -28,6 +28,7 @@ policy_data = """
     "action_plan:get": "",
     "action_plan:get_all": "",
     "action_plan:update": "",
+    "action_plan:cancel": "",
 
     "audit:create": "",
     "audit:delete": "",

@@ -194,3 +194,13 @@ def allow_webhook_api():
     """
     return pecan.request.version.minor >= (
         versions.VERSIONS.MINOR_4_WEBHOOK_API.value)
+
+
+def allow_action_plan_cancel():
+    """Check if we should support action plan cancel API.
+
+    Version 1.5 of the API added support to cancel action plans with a
+    dedicated endpoint.
+    """
+    return pecan.request.version.minor >= (
+        versions.VERSIONS.MINOR_5_ACTION_PLAN_CANCEL.value)

@@ -39,3 +39,12 @@ Added list data model API.
 ---
 Added Watcher webhook API. It can be used to trigger audit
 with ``event`` type.
+
+1.5
+---
+Added a dedicated action plan cancel API::
+
+  POST /v1/action_plans/{action_plan_uuid}/cancel
+
+This endpoint keeps the existing cancel state transitions without requiring
+clients to build a JSON Patch request.

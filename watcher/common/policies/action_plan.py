@@ -82,6 +82,17 @@ rules = [
                 'method': 'POST'
             }
         ]
+    ),
+    policy.DocumentedRuleDefault(
+        name=ACTION_PLAN % 'cancel',
+        check_str=base.RULE_ADMIN_API,
+        description='Cancel an action plan.',
+        operations=[
+            {
+                'path': '/v1/action_plans/{action_plan_uuid}/cancel',
+                'method': 'POST'
+            }
+        ]
     )
 ]
 

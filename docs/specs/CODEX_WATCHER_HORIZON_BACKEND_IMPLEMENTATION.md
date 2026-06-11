@@ -157,11 +157,28 @@ GET /v1/action_plans?audit_uuid=<AUDIT_UUID>&strategy=<STRATEGY>
 - combined filters `audit_uuid` и `strategy` коррелированы к одной строке
   action plan;
 - `next` pagination links сохраняют active filters;
-- cancel action plan остается PATCH-based state transition;
+- для API `1.0` - `1.4` cancel action plan остается PATCH-based state
+  transition;
+- начиная с API `1.5` добавлен dedicated endpoint:
+
+```http
+POST /v1/action_plans/<ACTION_PLAN_UUID>/cancel
+OpenStack-API-Version: infra-optim 1.5
+```
+
+- endpoint использует те же state transitions:
+
+```text
+RECOMMENDED -> CANCELLED
+PENDING     -> CANCELLED
+ONGOING     -> CANCELLING
+```
+
 - при cancel actions, принадлежащие этому action plan, переходят в
   `CANCELLED`, unrelated actions не затрагиваются.
 
-Dedicated cancel endpoint не добавлялся.
+Для `ONGOING -> CANCELLING` immediate перевод actions в `CANCELLED` не
+выполняется: дальнейшая остановка остается частью существующего applier flow.
 
 ### Data model API contract
 
@@ -251,7 +268,8 @@ Upgrade behavior:
 - не изменен microversion contract;
 - существующие `goal`, `strategy`, `limit`, `marker`, `sort_key`, `sort_dir`
   behavior сохранены;
-- action plan cancel остается PATCH-based.
+- action plan cancel через PATCH сохранен для совместимости;
+- dedicated action plan cancel endpoint добавлен только в microversion `1.5`.
 
 Планируемые публичные расширения API вынесены в отдельный P2 design document:
 
@@ -408,7 +426,6 @@ sphinx-build -E -W --keep-going -b html -j auto releasenotes/source releasenotes
 - integration tests с реальным OpenStack deployment;
 - изменения в Horizon, watcher-dashboard или python-watcherclient;
 - webhook trigger UI или webhook execution;
-- новый action plan cancel endpoint;
 - изменение audit response schema;
 - backfill historical audits;
 - client-side filtering behavior.

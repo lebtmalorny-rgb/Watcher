@@ -35,6 +35,8 @@ Watcher plugin, но не ломают существующий Watcher API Epox
 
 ## P2.1: Dedicated cancel endpoint для action plans
 
+Статус реализации: реализовано в backend API microversion `1.5`.
+
 ### Новый endpoint
 
 ```http

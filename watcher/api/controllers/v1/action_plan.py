@@ -343,8 +343,36 @@ class ActionPlansController(rest.RestController):
 
     _custom_actions = {
         'start': ['POST'],
+        'cancel': ['POST'],
         'detail': ['GET']
     }
+
+    def _cancel_related_actions(self, action_plan_uuid):
+        filters = {'action_plan_uuid': action_plan_uuid}
+        actions = objects.Action.list(pecan.request.context,
+                                      filters=filters, eager=True)
+        for action in actions:
+            action.state = objects.action.State.CANCELLED
+            action.save()
+
+    def _cancel_action_plan(self, context, action_plan):
+        allowed_cancel_transitions = {
+            ap_objects.State.RECOMMENDED: ap_objects.State.CANCELLED,
+            ap_objects.State.PENDING: ap_objects.State.CANCELLED,
+            ap_objects.State.ONGOING: ap_objects.State.CANCELLING,
+        }
+        try:
+            next_state = allowed_cancel_transitions[action_plan.state]
+        except KeyError:
+            raise exception.CancelError(state=action_plan.state)
+
+        action_plan.state = next_state
+        action_plan.save()
+
+        if next_state == ap_objects.State.CANCELLED:
+            self._cancel_related_actions(action_plan.uuid)
+
+        return objects.ActionPlan.get_by_uuid(context, action_plan.uuid)
 
     def _get_action_plans_collection(self, marker, limit,
                                      sort_key, sort_dir, expand=False,
@@ -567,12 +595,7 @@ class ActionPlansController(rest.RestController):
         # NOTE: if action plan is cancelled from pending or recommended
         # state update action state here only
         if cancel_action_plan:
-            filters = {'action_plan_uuid': action_plan.uuid}
-            actions = objects.Action.list(pecan.request.context,
-                                          filters=filters, eager=True)
-            for a in actions:
-                a.state = objects.action.State.CANCELLED
-                a.save()
+            self._cancel_related_actions(action_plan.uuid)
 
         if launch_action_plan:
             self.applier_client.launch_action_plan(pecan.request.context,
@@ -611,3 +634,25 @@ class ActionPlansController(rest.RestController):
             pecan.request.context, action_plan_uuid)
 
         return ActionPlan.convert_with_links(action_plan_to_start)
+
+    @wsme_pecan.wsexpose(ActionPlan, types.uuid)
+    def cancel(self, action_plan_uuid, **kwargs):
+        """Cancel an action_plan.
+
+        :param action_plan_uuid: UUID of an action_plan.
+        """
+        if not api_utils.allow_action_plan_cancel():
+            raise exception.NotAcceptable
+        if self.from_actionsPlans:
+            raise exception.OperationNotPermitted
+
+        context = pecan.request.context
+        action_plan_to_cancel = api_utils.get_resource(
+            'ActionPlan', action_plan_uuid, eager=True)
+        policy.enforce(context, 'action_plan:cancel',
+                       action_plan_to_cancel,
+                       action='action_plan:cancel')
+
+        action_plan_to_cancel = self._cancel_action_plan(
+            context, action_plan_to_cancel)
+        return ActionPlan.convert_with_links(action_plan_to_cancel)

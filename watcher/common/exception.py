@@ -357,6 +357,10 @@ class StartError(Invalid):
     msg_fmt = _("Couldn't start when state is '%(state)s'.")
 
 
+class CancelError(Invalid):
+    msg_fmt = _("Couldn't cancel when state is '%(state)s'.")
+
+
 # decision engine
 
 class WorkflowExecutionException(WatcherException):
