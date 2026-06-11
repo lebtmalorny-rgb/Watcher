@@ -127,6 +127,15 @@ r_audit_state:
   in: query
   required: false
   type: string
+r_audit_template_uuid:
+  description: |
+    Optional audit template UUID used for filtering Audit collection results.
+    The filter matches audits whose persisted ``audit_template_id`` points to
+    the specified Audit Template. Audits created before this relationship was
+    stored, or audits created directly from a goal, do not match this filter.
+  in: query
+  required: false
+  type: string
 r_goal:
   description: |
     The UUID or name of the Goal.

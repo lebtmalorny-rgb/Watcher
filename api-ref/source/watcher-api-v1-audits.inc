@@ -110,6 +110,7 @@ Request
    - goal: r_goal
    - strategy: r_strategy
    - state: r_audit_state
+   - audit_template_uuid: r_audit_template_uuid
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir
@@ -156,8 +157,8 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - goal: r_goal
-   - strategy: r_strategy
    - state: r_audit_state
+   - audit_template_uuid: r_audit_template_uuid
    - limit: limit
    - marker: marker
    - sort_dir: sort_dir

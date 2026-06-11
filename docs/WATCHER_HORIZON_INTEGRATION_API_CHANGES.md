@@ -22,16 +22,20 @@ standalone Horizon Watcher plugin.
 The current implemented changes are intentionally small and backward-compatible:
 
 - add an optional audit `state` query filter to audit collection APIs;
+- add an optional audit `audit_template_uuid` query filter to audit collection
+  APIs;
+- persist the source audit template for newly created template-backed audits in
+  nullable `audits.audit_template_id`;
 - document and regression-test the existing audit create contract used by UI
   clients;
 - reject `force=True` when creating `CONTINUOUS` audits, because force applies
   to immediate non-continuous execution and is ambiguous for scheduled audits;
-- keep the Audit response schema unchanged;
-- keep the database schema unchanged;
-- keep the Watcher versioned object schema unchanged.
+- keep the Audit response schema unchanged.
 
 The goal is to let Horizon filter audit lists server-side without requiring
-client-side filtering or a database migration.
+client-side filtering. The audit-template filter includes a nullable database
+migration and an Audit object version bump, but does not add audit-template
+fields to audit API responses.
 
 ## API Changes
 
@@ -201,9 +205,9 @@ together with `limit` and `marker`.
 
 ## Data Model Changes
 
-There are no database schema changes for the `state` filter.
+The `state` filter does not require a schema change.
 
-Unchanged database model:
+Existing database model used by the `state` filter:
 
 ```text
 audits.state
@@ -212,17 +216,28 @@ audits.state
 The existing `audits.state` column is already supported by the SQLAlchemy DB
 filter helper. The API now exposes that existing capability through REST.
 
-There are no changes to:
+The `audit_template_uuid` filter adds a persisted audit-to-audit-template
+relationship for newly created template-backed audits:
 
-- `watcher/db/sqlalchemy/models.py`;
-- Alembic migration scripts;
-- `watcher/objects/audit.py` fields;
-- Audit object version;
-- Audit response body fields.
+```text
+audits.audit_template_id -> audit_templates.id
+```
 
-Because the Audit object schema is unchanged, existing Watcher clients and
-Horizon code that deserialize audit responses do not need model updates for
-this feature.
+Data model integration details:
+
+- `watcher/db/sqlalchemy/models.py` adds nullable `Audit.audit_template_id`
+  and an `Audit.audit_template` relationship.
+- Alembic revision `c2f4b8d6e3a1` adds the nullable column and foreign key.
+- `watcher/objects/audit.py` adds nullable `audit_template_id` and bumps the
+  Audit object version.
+- `watcher/api/controllers/v1/audit.py` stores the resolved template id when
+  an audit is created with `audit_template_uuid`.
+- Historical audits are not backfilled.
+- Audit response body fields are unchanged.
+
+Because the Audit response schema is unchanged, existing Watcher clients and
+Horizon code that deserialize audit responses do not need response model
+updates for this feature.
 
 ## Horizon Plugin Contract
 
@@ -230,7 +245,7 @@ Recommended capability flags for a Horizon Watcher plugin:
 
 ```python
 WATCHER_BACKEND_SUPPORTS_AUDIT_STATE_FILTER = True
-WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = False
+WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER = True
 ```
 
 Recommended UI behavior:
@@ -241,41 +256,36 @@ Recommended UI behavior:
 - use `audit_uuid`, not `audit`, when filtering action plans by audit;
 - follow filtered action plan `next` links as-is so `audit_uuid` and
   `strategy` filters remain active across pages;
+- use server-side `audit_template_uuid` filtering when the backend capability
+  flag is enabled;
 - omit `force` for `CONTINUOUS` audit creation and expose it only where the UI
   creates immediate non-continuous audits under the existing microversion
   contract;
 - send strategy `parameters` only after validating them against the selected
   strategy schema exposed by Watcher;
-- do not emulate `audit_template_uuid` filtering client-side unless the plugin
-  has already fetched all relevant pages and explicitly labels the result as
-  client-filtered.
+- do not emulate `audit_template_uuid` filtering client-side for this backend
+  capability.
 
-## Explicit Non-Change: Audit Template Filter
+### Audit template filter
 
-`GET /v1/audits?audit_template_uuid=<UUID>` is not implemented in this patch.
+`GET /v1/audits?audit_template_uuid=<UUID>` and
+`GET /v1/audits/detail?audit_template_uuid=<UUID>` are supported by this
+branch.
 
-Reason:
+The backend persists the source audit template as `audits.audit_template_id`
+when an audit is created with `audit_template_uuid`. The response body shape is
+unchanged: audit list/detail responses still do not expose
+`audit_template_uuid`.
 
-- `AuditPostType` accepts `audit_template_uuid` when creating an audit;
-- Watcher uses the template to derive audit fields such as goal, strategy,
-  scope, and default name;
-- the created Audit row does not persist `audit_template_uuid`;
-- the Epoxy `audits` table has no `audit_template_id` or
-  `audit_template_uuid` column.
+Integration notes:
 
-Adding a correct `audit_template_uuid` audit list filter requires a separate
-schema-changing task:
-
-- database migration;
-- SQLAlchemy model update;
-- Audit object field and object version update;
-- create-path persistence of the template identity;
-- API compatibility decision for response exposure;
-- DB/API tests;
-- api-ref and release notes.
-
-Until that separate task is implemented, Horizon should not assume server-side
-audit-template filtering is available.
+- Horizon may send `audit_template_uuid` when this backend capability is
+  deployed.
+- The filter matches audits that have a persisted `audit_template_id`.
+- Historical audits created before this schema change are not backfilled and do
+  not match the filter unless their `audit_template_id` is populated later.
+- Audits created directly from `goal` have no audit template relationship and
+  do not match the filter.
 
 ## Files Changed
 
@@ -285,9 +295,16 @@ Code:
 watcher/api/controllers/v1/types.py
 watcher/api/controllers/v1/audit.py
 watcher/api/controllers/v1/action_plan.py
+watcher/db/sqlalchemy/api.py
+watcher/db/sqlalchemy/models.py
+watcher/db/sqlalchemy/alembic/versions/c2f4b8d6e3a1_add_audit_template_id_to_audits.py
+watcher/objects/audit.py
 watcher/tests/api/v1/test_audits.py
 watcher/tests/api/v1/test_actions_plans.py
 watcher/tests/db/test_action_plan.py
+watcher/tests/db/test_audit.py
+watcher/tests/db/utils.py
+watcher/tests/objects/test_objects.py
 ```
 
 Documentation:
@@ -297,4 +314,5 @@ api-ref/source/parameters.yaml
 api-ref/source/watcher-api-v1-audits.inc
 docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
 releasenotes/notes/audit-state-query-filter-2ad0c3df0af66f13.yaml
+releasenotes/notes/audit-template-filter-4f65d2cb0dfd13f2.yaml
 ```

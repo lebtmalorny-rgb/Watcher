@@ -170,25 +170,25 @@ patch:
 - `audit_template_uuid` is not exposed as a REST query parameter.
 - `GET /v1/audits/detail` accepts `goal`, but does not expose `strategy`.
 
-Current DB behavior in `watcher/db/sqlalchemy/api.py`:
+Baseline DB behavior in `watcher/db/sqlalchemy/api.py` before this branch:
 
 - `_add_audits_filters()` already allows filtering by plain field `state`.
 - `_add_audits_filters()` allows `goal_uuid`, `goal_name`, `strategy_uuid`,
   and `strategy_name`.
 - `_add_audits_filters()` does not support `audit_template_uuid`.
 
-Low-risk implementation:
+State-filter implementation steps completed on this branch:
 
 1. Add `state` query parameter to `AuditsController._get_audits_collection()`.
 2. Add `state` to `AuditsController.get_all()`.
-3. Optionally add `state` and `strategy` to `AuditsController.detail()` for
-   parity, if API compatibility is acceptable.
+3. Add `state` to `AuditsController.detail()`; `strategy` remains supported
+   only by compact `GET /v1/audits`.
 4. Validate `state` against `objects.audit.State`.
 5. Pass `filters['state'] = state` before calling `objects.Audit.list()`.
 6. Add API tests in `watcher/tests/api/v1/test_audits.py`.
 7. Update API reference and release note.
 
-Suggested tests:
+Implemented tests:
 
 ```text
 test_many_with_state_filter
@@ -200,7 +200,7 @@ test_many_with_invalid_state_filter
 test_detail_with_state_filter
 ```
 
-Implementation status on this branch:
+State-filter implementation status on this branch:
 
 - `GET /v1/audits?state=...` is implemented.
 - `GET /v1/audits/detail?state=...` is implemented.
@@ -218,36 +218,15 @@ docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
 
 ## Audit Template UUID Filter
 
-This is not a simple query-parameter addition on Epoxy.
+Implemented on this branch:
 
-`AuditPostType` accepts `audit_template_uuid` at create time, but the value is
-used only to copy template-derived fields into the audit:
-
-```text
-goal_id
-strategy_id
-scope
-name default
-```
-
-The audit DB model does not store `audit_template_uuid`. The `audits` table has
-no `audit_template_id` or `audit_template_uuid` column.
-
-Consequence:
-
-- `GET /v1/audits?audit_template_uuid=<uuid>` cannot be implemented correctly
-  without adding persistent audit-template identity to the Audit model.
-- A client-side or heuristic implementation based on goal/strategy/scope would
-  be ambiguous and should be avoided.
-
-Recommended decision:
-
-- For a low-risk Epoxy backend patch, defer `audit_template_uuid` filtering and
-  keep Horizon feature flag `WATCHER_BACKEND_SUPPORTS_AUDIT_TEMPLATE_FILTER =
-  False`.
-- If this filter is mandatory, make it a separate schema-changing task:
-  migration, DB model, object field/version, create-path persistence,
-  API response compatibility decision, tests, docs, and release note.
+- `audits.audit_template_id` stores the source audit template for new audits
+  created with `audit_template_uuid`.
+- `GET /v1/audits?audit_template_uuid=<uuid>` is a server-side filter.
+- `GET /v1/audits/detail?audit_template_uuid=<uuid>` is a server-side filter.
+- The response body shape is unchanged; `audit_template_uuid` is not returned
+  in audit response bodies.
+- Historical audits are not backfilled.
 
 ## Audit Create Coverage
 
@@ -389,7 +368,7 @@ test_state
 test_policy_disallow_state
 ```
 
-## Recommended Work Order
+## Completed Work Order On This Branch
 
 ### Phase 0: Align Specs With Epoxy
 
@@ -399,13 +378,15 @@ Update local task docs so they reference actual Epoxy paths and parameter names:
 - tests under `watcher/tests/api/v1/`;
 - action plan filter name `audit_uuid`;
 - data model parameter names `data_model_type` and `audit_uuid`;
-- `audit_template_uuid` filter marked as schema-changing or deferred.
+- `audit_template_uuid` filter treated as schema-changing work, not as a
+  simple query-parameter-only patch.
 
 ### Phase 1: Low-Risk Backend Patch
 
-Implement audit `state` list filter only.
+Implemented audit `state` list/detail filters first, without a database
+migration.
 
-Files likely touched:
+Primary files touched:
 
 ```text
 watcher/api/controllers/v1/audit.py
@@ -418,8 +399,9 @@ releasenotes/notes/<new-note>.yaml
 Run:
 
 ```bash
-tox -e py3 -- watcher.tests.api.v1.test_audits
-tox -e pep8
+OS_STDOUT_CAPTURE=1 OS_STDERR_CAPTURE=1 OS_TEST_TIMEOUT=30 \
+PYTHONDONTWRITEBYTECODE=1 /private/tmp/watcher-venv-py312/bin/stestr run \
+watcher.tests.api.v1.test_audits
 ```
 
 ### Phase 2: Regression Coverage Without Contract Expansion
@@ -431,15 +413,23 @@ Add tests for existing behavior that Horizon depends on:
 - action plan list with `audit_uuid + limit + sort`;
 - data model default compute and `audit_uuid`.
 
-### Phase 3: Contract Decisions
+### Phase 3: Audit Template Filter
 
-Decide separately:
+Implemented the schema-changing audit-template filter after the lower-risk
+contract fixes:
 
-- whether to reject `force=True` for `CONTINUOUS` at backend level;
-- whether `audit_template_uuid` filtering is mandatory enough to justify a DB
-  schema migration and object-version update;
-- whether to add aliases like `audit` or `type`, or keep existing Epoxy API
-  names and adapt Horizon wrapper code.
+- nullable `audits.audit_template_id` migration and SQLAlchemy relationship;
+- nullable `objects.Audit.audit_template_id` field and Audit object version
+  bump;
+- DB filter support for `audit_template_uuid`;
+- audit create persistence from `audit_template_uuid`;
+- `GET /v1/audits?audit_template_uuid=...`;
+- `GET /v1/audits/detail?audit_template_uuid=...`;
+- pagination next-link preservation;
+- api-ref, Horizon integration documentation, and release note.
+
+The implementation keeps audit response bodies unchanged and does not add
+`audit_template_uuid` or `audit_template_id` to audit list/detail responses.
 
 ## Watcher vs Masakari Boundary
 

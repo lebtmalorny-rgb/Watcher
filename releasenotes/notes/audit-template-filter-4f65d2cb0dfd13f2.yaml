@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds a persisted audit-to-audit-template relationship for audits created
+    with ``audit_template_uuid`` and exposes ``audit_template_uuid`` as an
+    optional server-side filter for ``GET /v1/audits`` and
+    ``GET /v1/audits/detail``.
+upgrade:
+  - |
+    Adds nullable column ``audits.audit_template_id``. Existing audits are not
+    backfilled because previous releases did not persist the source audit
+    template on the audit row.
