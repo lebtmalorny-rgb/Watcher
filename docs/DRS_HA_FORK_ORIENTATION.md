@@ -146,6 +146,9 @@ cd '/Users/dmitry/Desktop/DRS:HA_fork/watcher'
 ```text
 docs/specs/codex_task_watcher_backend_api.md
 docs/specs/codex_task_watcher_horizon_plugin.md
+docs/specs/CODEX_WATCHER_HORIZON_BACKEND_IMPLEMENTATION.md
+docs/WATCHER_HORIZON_INTEGRATION_API_CHANGES.md
+docs/WATCHER_EPOXY_2025_1_ANALYSIS.md
 ```
 
 Частые зоны кода:
